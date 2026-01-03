@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import {
+  generateText,
+  ModelMessage,
+  UserModelMessage,
+  AssistantModelMessage,
+  ImagePart,
+  TextPart,
+} from 'ai';
 import { ProcessRecipeRequest, Recipe } from '@/lib/types';
 
 const SYSTEM_PROMPT = `You are a recipe analysis assistant. Your job is to analyze recipe screenshots and extract the recipe information into a structured flowchart format.
@@ -79,45 +86,56 @@ export async function POST(request: NextRequest) {
     });
 
     // Build the messages for the API call
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const messages: any[] = [];
+    const messages: ModelMessage[] = [];
 
     // Add conversation history for context (for edits)
     if (conversationHistory && conversationHistory.length > 0) {
       for (const msg of conversationHistory) {
-        messages.push({
-          role: msg.role,
-          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-        });
+        if (msg.role === 'user') {
+          const userMsg: UserModelMessage = {
+            role: 'user',
+            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+          };
+          messages.push(userMsg);
+        } else if (msg.role === 'assistant') {
+          const assistantMsg: AssistantModelMessage = {
+            role: 'assistant',
+            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+          };
+          messages.push(assistantMsg);
+        }
       }
     }
 
     // Build the current user message with images
-    const userContent: Array<{ type: string; text?: string; image?: string; mimeType?: string }> = [];
+    const userContent: Array<ImagePart | TextPart> = [];
 
     // Add images first
     for (const img of images) {
-      userContent.push({
+      const imagePart: ImagePart = {
         type: 'image',
         image: img.base64,
-        mimeType: img.mediaType,
-      });
+        mediaType: img.mediaType,
+      };
+      userContent.push(imagePart);
     }
 
     // Add the text prompt
-    userContent.push({
+    const textPart: TextPart = {
       type: 'text',
       text: buildUserPrompt(instructions),
-    });
+    };
+    userContent.push(textPart);
 
-    messages.push({
+    const currentUserMessage: UserModelMessage = {
       role: 'user',
       content: userContent,
-    });
+    };
+    messages.push(currentUserMessage);
 
     // Call Claude API
     const { text } = await generateText({
-      model: anthropic('claude-sonnet-4-20250514'),
+      model: anthropic('claude-opus-4-5-20251101'),
       system: SYSTEM_PROMPT,
       messages,
     });
