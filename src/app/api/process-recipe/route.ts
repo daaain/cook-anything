@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, CoreMessage, ImagePart, TextPart } from 'ai';
+import { generateText } from 'ai';
 import { ProcessRecipeRequest, Recipe } from '@/lib/types';
 
 const SYSTEM_PROMPT = `You are a recipe analysis assistant. Your job is to analyze recipe screenshots and extract the recipe information into a structured flowchart format.
@@ -78,45 +78,41 @@ export async function POST(request: NextRequest) {
       apiKey: token,
     });
 
-    // Build the user content parts
-    const userContentParts: (ImagePart | TextPart)[] = [
-      // Add images first
-      ...images.map((img): ImagePart => ({
-        type: 'image',
-        image: img.base64,
-        mimeType: img.mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-      })),
-      // Add the prompt
-      {
-        type: 'text',
-        text: buildUserPrompt(instructions),
-      } as TextPart,
-    ];
-
-    // Build messages with conversation history if provided
-    const messages: CoreMessage[] = [];
+    // Build the messages for the API call
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = [];
 
     // Add conversation history for context (for edits)
     if (conversationHistory && conversationHistory.length > 0) {
       for (const msg of conversationHistory) {
-        if (msg.role === 'user') {
-          messages.push({
-            role: 'user',
-            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          });
-        } else if (msg.role === 'assistant') {
-          messages.push({
-            role: 'assistant',
-            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          });
-        }
+        messages.push({
+          role: msg.role,
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+        });
       }
     }
 
-    // Add the current user message
+    // Build the current user message with images
+    const userContent: Array<{ type: string; text?: string; image?: string; mimeType?: string }> = [];
+
+    // Add images first
+    for (const img of images) {
+      userContent.push({
+        type: 'image',
+        image: img.base64,
+        mimeType: img.mediaType,
+      });
+    }
+
+    // Add the text prompt
+    userContent.push({
+      type: 'text',
+      text: buildUserPrompt(instructions),
+    });
+
     messages.push({
       role: 'user',
-      content: userContentParts,
+      content: userContent,
     });
 
     // Call Claude API
@@ -124,7 +120,6 @@ export async function POST(request: NextRequest) {
       model: anthropic('claude-sonnet-4-20250514'),
       system: SYSTEM_PROMPT,
       messages,
-      maxTokens: 4096,
     });
 
     // Parse the response
