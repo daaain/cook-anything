@@ -80,9 +80,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Anthropic client with user's token
+    // Create Anthropic client with user's OAuth token
+    // OAuth tokens use Authorization: Bearer header instead of x-api-key
     const anthropic = createAnthropic({
-      apiKey: token,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
     });
 
     // Build the messages for the API call
