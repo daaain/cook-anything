@@ -47,11 +47,15 @@ export interface ImageData {
   mediaType: string;
 }
 
+export type MeasureSystem = 'metric' | 'american';
+
 export interface ProcessRecipeRequest {
   images: ImageData[];
   instructions?: string;
   conversationHistory?: Message[];
   token: string;
+  measureSystem?: MeasureSystem;
+  servings?: number;
 }
 
 export interface ProcessRecipeResponse {

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Upload, X, ImagePlus, Loader2, Sparkles } from 'lucide-react';
-import { ImageData, OAuthToken, Recipe, Message } from '@/lib/types';
+import { Upload, X, ImagePlus, Loader2, Sparkles, Users } from 'lucide-react';
+import { ImageData, OAuthToken, Recipe, Message, MeasureSystem } from '@/lib/types';
 import { getAccessToken, getTokenStatus } from '@/lib/token';
 
 interface RecipeUploaderProps {
@@ -14,6 +14,8 @@ interface RecipeUploaderProps {
 export function RecipeUploader({ token, onRecipeProcessed, conversationHistory = [] }: RecipeUploaderProps) {
   const [images, setImages] = useState<{ data: ImageData; preview: string }[]>([]);
   const [adjustments, setAdjustments] = useState('');
+  const [measureSystem, setMeasureSystem] = useState<MeasureSystem>('metric');
+  const [servings, setServings] = useState(4);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +93,8 @@ export function RecipeUploader({ token, onRecipeProcessed, conversationHistory =
           instructions: adjustments || undefined,
           conversationHistory,
           token: getAccessToken(token),
+          measureSystem,
+          servings,
         }),
       });
 
@@ -193,6 +197,62 @@ export function RecipeUploader({ token, onRecipeProcessed, conversationHistory =
           </div>
         )}
 
+        {/* Measure System & Servings */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Measure System Toggle */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Measurements
+            </label>
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setMeasureSystem('metric')}
+                disabled={isProcessing}
+                className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
+                  measureSystem === 'metric'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                } disabled:opacity-50`}
+              >
+                Metric
+              </button>
+              <button
+                type="button"
+                onClick={() => setMeasureSystem('american')}
+                disabled={isProcessing}
+                className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
+                  measureSystem === 'american'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                } disabled:opacity-50`}
+              >
+                US/Imperial
+              </button>
+            </div>
+          </div>
+
+          {/* Servings Input */}
+          <div className="flex-1">
+            <label htmlFor="servings" className="block text-sm font-medium text-gray-700 mb-2">
+              Servings
+            </label>
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-gray-400" />
+              <input
+                type="number"
+                id="servings"
+                min={1}
+                max={100}
+                value={servings}
+                onChange={(e) => setServings(Math.max(1, parseInt(e.target.value) || 1))}
+                disabled={isProcessing}
+                className="w-full py-2 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Adjustments Input */}
         <div>
           <label htmlFor="adjustments" className="block text-sm font-medium text-gray-700 mb-2">
@@ -203,8 +263,8 @@ export function RecipeUploader({ token, onRecipeProcessed, conversationHistory =
             value={adjustments}
             onChange={(e) => setAdjustments(e.target.value)}
             disabled={isProcessing}
-            placeholder="E.g., 'Make it vegetarian', 'Double the recipe', 'Less spicy'..."
-            className="w-full h-24 p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+            placeholder="E.g., 'Make it vegetarian', 'Less spicy'..."
+            className="w-full h-20 p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
           />
         </div>
 

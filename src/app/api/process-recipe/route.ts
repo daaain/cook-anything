@@ -8,7 +8,7 @@ import {
   ImagePart,
   TextPart,
 } from 'ai';
-import { ProcessRecipeRequest, Recipe } from '@/lib/types';
+import { ProcessRecipeRequest, Recipe, MeasureSystem } from '@/lib/types';
 
 const SYSTEM_PROMPT = `You are a recipe analysis assistant. Your job is to analyze recipe screenshots and extract the recipe information into a structured flowchart format.
 
@@ -21,8 +21,22 @@ When analyzing recipes:
 6. Make instructions clear and actionable
 7. Integrate ingredient amounts naturally into instructions`;
 
-function buildUserPrompt(instructions?: string): string {
+interface PromptOptions {
+  instructions?: string;
+  measureSystem: MeasureSystem;
+  servings: number;
+}
+
+function buildUserPrompt({ instructions, measureSystem, servings }: PromptOptions): string {
+  const measureDesc = measureSystem === 'metric'
+    ? 'metric units (grams, ml, celsius)'
+    : 'US/imperial units (cups, tablespoons, ounces, fahrenheit)';
+
   return `Analyze these recipe screenshots and extract the recipe information.
+
+RECIPE SETTINGS:
+- Measurement system: ${measureDesc}
+- Scale recipe to: ${servings} servings
 ${instructions ? `\nUSER ADJUSTMENTS - Apply these modifications to the recipe:\n${instructions}\n` : ''}
 Return ONLY valid JSON (no markdown, no backticks, no code blocks) in this exact format:
 {
@@ -62,7 +76,14 @@ IMPORTANT RULES:
 export async function POST(request: NextRequest) {
   try {
     const body: ProcessRecipeRequest = await request.json();
-    const { images, instructions, conversationHistory, token } = body;
+    const {
+      images,
+      instructions,
+      conversationHistory,
+      token,
+      measureSystem = 'metric',
+      servings = 4,
+    } = body;
 
     // Validate token
     if (!token || typeof token !== 'string') {
@@ -126,7 +147,7 @@ export async function POST(request: NextRequest) {
     // Add the text prompt
     const textPart: TextPart = {
       type: 'text',
-      text: buildUserPrompt(instructions),
+      text: buildUserPrompt({ instructions, measureSystem, servings }),
     };
     userContent.push(textPart);
 
