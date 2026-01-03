@@ -26,17 +26,17 @@ A Next.js web app that transforms recipe screenshots into interactive cooking fl
 
 ### Prerequisites
 
-- Node.js 18+ or Bun
+- [Bun](https://bun.sh/) runtime
 - Claude API OAuth token
 
 ### Installation
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm run dev
+bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.

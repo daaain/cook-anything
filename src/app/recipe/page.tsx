@@ -6,8 +6,7 @@ import { FlowChart } from '@/components/FlowChart';
 import { RecipeUploader } from '@/components/RecipeUploader';
 import { RecipeExport } from '@/components/RecipeExport';
 import { useRecipes } from '@/hooks/useRecipes';
-import { Recipe, OAuthToken, Message } from '@/lib/types';
-import { getTokenFromStorage } from '@/lib/token';
+import { Recipe, Message } from '@/lib/types';
 import { ArrowLeft, Edit3, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,7 +18,6 @@ function RecipePageContent() {
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [token, setToken] = useState<OAuthToken | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -27,7 +25,6 @@ function RecipePageContent() {
       const loadedRecipe = getBySlug(slug);
       setRecipe(loadedRecipe);
     }
-    setToken(getTokenFromStorage());
     setIsLoaded(true);
   }, [slug, getBySlug]);
 
@@ -144,7 +141,6 @@ function RecipePageContent() {
             Add more images or describe changes you&apos;d like to make. Your changes will be applied to the current recipe.
           </p>
           <RecipeUploader
-            token={token}
             onRecipeProcessed={handleRecipeUpdate}
             conversationHistory={recipe.conversationHistory}
           />

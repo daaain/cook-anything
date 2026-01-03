@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { NextRequest, NextResponse } from "next/server";
+import { createClaudeCode } from "ai-sdk-provider-claude-code";
 import {
-  generateText,
-  ModelMessage,
-  UserModelMessage,
-  AssistantModelMessage,
-  ImagePart,
-  TextPart,
-} from 'ai';
-import { ProcessRecipeRequest, Recipe, MeasureSystem } from '@/lib/types';
+	generateText,
+	ModelMessage,
+	UserModelMessage,
+	AssistantModelMessage,
+	ImagePart,
+	TextPart,
+} from "ai";
+import { ProcessRecipeRequest, Recipe, MeasureSystem } from "@/lib/types";
 
 const SYSTEM_PROMPT = `You are a recipe analysis assistant. Your job is to analyze recipe screenshots and extract the recipe information into a structured flowchart format.
 
@@ -22,22 +22,27 @@ When analyzing recipes:
 7. Integrate ingredient amounts naturally into instructions`;
 
 interface PromptOptions {
-  instructions?: string;
-  measureSystem: MeasureSystem;
-  servings: number;
+	instructions?: string;
+	measureSystem: MeasureSystem;
+	servings: number;
 }
 
-function buildUserPrompt({ instructions, measureSystem, servings }: PromptOptions): string {
-  const measureDesc = measureSystem === 'metric'
-    ? 'metric units (grams, ml, celsius)'
-    : 'US/imperial units (cups, tablespoons, ounces, fahrenheit)';
+function buildUserPrompt({
+	instructions,
+	measureSystem,
+	servings,
+}: PromptOptions): string {
+	const measureDesc =
+		measureSystem === "metric"
+			? "metric units (grams, ml, celsius)"
+			: "US/imperial units (cups, tablespoons, ounces, fahrenheit)";
 
-  return `Analyze these recipe screenshots and extract the recipe information.
+	return `Analyze these recipe screenshots and extract the recipe information.
 
 RECIPE SETTINGS:
 - Measurement system: ${measureDesc}
 - Scale recipe to: ${servings} servings
-${instructions ? `\nUSER ADJUSTMENTS - Apply these modifications to the recipe:\n${instructions}\n` : ''}
+${instructions ? `\nUSER ADJUSTMENTS - Apply these modifications to the recipe:\n${instructions}\n` : ""}
 Return ONLY valid JSON (no markdown, no backticks, no code blocks) in this exact format:
 {
   "title": "Recipe Name",
@@ -73,164 +78,189 @@ IMPORTANT RULES:
 8. Step numbers should be sequential across all groups`;
 }
 
+// Create Claude Code provider with streaming enabled for image support
+const claudeCode = createClaudeCode({
+	defaultSettings: {
+		streamingInput: "always",
+	},
+});
+
 export async function POST(request: NextRequest) {
-  try {
-    const body: ProcessRecipeRequest = await request.json();
-    const {
-      images,
-      instructions,
-      conversationHistory,
-      token,
-      measureSystem = 'metric',
-      servings = 4,
-    } = body;
+	try {
+		const body: ProcessRecipeRequest = await request.json();
+		const {
+			images,
+			instructions,
+			conversationHistory,
+			measureSystem = "metric",
+			servings = 4,
+		} = body;
 
-    // Validate token
-    if (!token || typeof token !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'Invalid or missing API token' },
-        { status: 401 }
-      );
-    }
+		// Validate images
+		if (!images || images.length === 0) {
+			return NextResponse.json(
+				{ success: false, error: "At least one image is required" },
+				{ status: 400 },
+			);
+		}
 
-    // Validate images
-    if (!images || images.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'At least one image is required' },
-        { status: 400 }
-      );
-    }
+		// Build the messages for the API call
+		const messages: ModelMessage[] = [];
 
-    // Create Anthropic client with user's OAuth token
-    // OAuth tokens use Authorization: Bearer header instead of x-api-key
-    const anthropic = createAnthropic({
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+		// Add conversation history for context (for edits)
+		if (conversationHistory && conversationHistory.length > 0) {
+			for (const msg of conversationHistory) {
+				if (msg.role === "user") {
+					const userMsg: UserModelMessage = {
+						role: "user",
+						content:
+							typeof msg.content === "string"
+								? msg.content
+								: JSON.stringify(msg.content),
+					};
+					messages.push(userMsg);
+				} else if (msg.role === "assistant") {
+					const assistantMsg: AssistantModelMessage = {
+						role: "assistant",
+						content:
+							typeof msg.content === "string"
+								? msg.content
+								: JSON.stringify(msg.content),
+					};
+					messages.push(assistantMsg);
+				}
+			}
+		}
 
-    // Build the messages for the API call
-    const messages: ModelMessage[] = [];
+		// Build the current user message with images
+		const userContent: Array<ImagePart | TextPart> = [];
 
-    // Add conversation history for context (for edits)
-    if (conversationHistory && conversationHistory.length > 0) {
-      for (const msg of conversationHistory) {
-        if (msg.role === 'user') {
-          const userMsg: UserModelMessage = {
-            role: 'user',
-            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          };
-          messages.push(userMsg);
-        } else if (msg.role === 'assistant') {
-          const assistantMsg: AssistantModelMessage = {
-            role: 'assistant',
-            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          };
-          messages.push(assistantMsg);
-        }
-      }
-    }
+		// Add images first - convert to data URL format for Claude Code provider
+		for (const img of images) {
+			const dataUrl = `data:${img.mediaType};base64,${img.base64}`;
+			const imagePart: ImagePart = {
+				type: "image",
+				image: dataUrl,
+			};
+			userContent.push(imagePart);
+		}
 
-    // Build the current user message with images
-    const userContent: Array<ImagePart | TextPart> = [];
+		// Add the text prompt
+		const textPart: TextPart = {
+			type: "text",
+			text: buildUserPrompt({ instructions, measureSystem, servings }),
+		};
+		userContent.push(textPart);
 
-    // Add images first
-    for (const img of images) {
-      const imagePart: ImagePart = {
-        type: 'image',
-        image: img.base64,
-        mediaType: img.mediaType,
-      };
-      userContent.push(imagePart);
-    }
+		const currentUserMessage: UserModelMessage = {
+			role: "user",
+			content: userContent,
+		};
+		messages.push(currentUserMessage);
 
-    // Add the text prompt
-    const textPart: TextPart = {
-      type: 'text',
-      text: buildUserPrompt({ instructions, measureSystem, servings }),
-    };
-    userContent.push(textPart);
+		// Call Claude API using Claude Code provider
+		// Uses CLI authentication - ensure `claude login` has been run on the server
+		const { text } = await generateText({
+			model: claudeCode("opus"),
+			system: SYSTEM_PROMPT,
+			messages,
+		});
 
-    const currentUserMessage: UserModelMessage = {
-      role: 'user',
-      content: userContent,
-    };
-    messages.push(currentUserMessage);
+		// Parse the response
+		let recipe: Recipe;
+		try {
+			// Try to extract JSON from the response (in case there's extra text)
+			const jsonMatch = text.match(/\{[\s\S]*\}/);
+			if (!jsonMatch) {
+				throw new Error("No JSON object found in response");
+			}
+			recipe = JSON.parse(jsonMatch[0]);
 
-    // Call Claude API
-    const { text } = await generateText({
-      model: anthropic('claude-opus-4-5-20251101'),
-      system: SYSTEM_PROMPT,
-      messages,
-    });
+			// Validate the recipe structure
+			if (
+				!recipe.title ||
+				!recipe.flowGroups ||
+				!Array.isArray(recipe.flowGroups)
+			) {
+				throw new Error("Invalid recipe structure");
+			}
 
-    // Parse the response
-    let recipe: Recipe;
-    try {
-      // Try to extract JSON from the response (in case there's extra text)
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON object found in response');
-      }
-      recipe = JSON.parse(jsonMatch[0]);
+			// Ensure all required fields are present
+			recipe.flowGroups = recipe.flowGroups.map((group) => ({
+				parallel: Boolean(group.parallel),
+				steps: group.steps.map((step) => ({
+					stepNumber: step.stepNumber || 0,
+					type: step.type || "prep",
+					instruction: step.instruction || "",
+					ingredients: step.ingredients || [],
+					timerMinutes: step.timerMinutes || 0,
+				})),
+			}));
+		} catch (parseError) {
+			console.error("Failed to parse recipe:", parseError, "Response:", text);
+			return NextResponse.json(
+				{ success: false, error: "Failed to parse recipe from AI response" },
+				{ status: 500 },
+			);
+		}
 
-      // Validate the recipe structure
-      if (!recipe.title || !recipe.flowGroups || !Array.isArray(recipe.flowGroups)) {
-        throw new Error('Invalid recipe structure');
-      }
+		return NextResponse.json({
+			success: true,
+			recipe,
+			assistantMessage: text,
+		});
+	} catch (error) {
+		console.error("Error processing recipe:", error);
 
-      // Ensure all required fields are present
-      recipe.flowGroups = recipe.flowGroups.map((group) => ({
-        parallel: Boolean(group.parallel),
-        steps: group.steps.map((step) => ({
-          stepNumber: step.stepNumber || 0,
-          type: step.type || 'prep',
-          instruction: step.instruction || '',
-          ingredients: step.ingredients || [],
-          timerMinutes: step.timerMinutes || 0,
-        })),
-      }));
-    } catch (parseError) {
-      console.error('Failed to parse recipe:', parseError, 'Response:', text);
-      return NextResponse.json(
-        { success: false, error: 'Failed to parse recipe from AI response' },
-        { status: 500 }
-      );
-    }
+		// Check for API errors
+		if (error instanceof Error) {
+			if (
+				error.message.includes("401") ||
+				error.message.includes("Unauthorized") ||
+				error.message.includes("authentication")
+			) {
+				return NextResponse.json(
+					{
+						success: false,
+						error:
+							"Authentication failed. Ensure the server has run `claude login`.",
+					},
+					{ status: 401 },
+				);
+			}
+			if (
+				error.message.includes("429") ||
+				error.message.includes("rate limit")
+			) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Rate limit exceeded. Please try again later.",
+					},
+					{ status: 429 },
+				);
+			}
+			if (
+				error.message.includes("insufficient") ||
+				error.message.includes("quota")
+			) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "API quota exceeded. Please check your account.",
+					},
+					{ status: 402 },
+				);
+			}
+		}
 
-    return NextResponse.json({
-      success: true,
-      recipe,
-      assistantMessage: text,
-    });
-  } catch (error) {
-    console.error('Error processing recipe:', error);
-
-    // Check for API errors
-    if (error instanceof Error) {
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid API token. Please check your token in Settings.' },
-          { status: 401 }
-        );
-      }
-      if (error.message.includes('429') || error.message.includes('rate limit')) {
-        return NextResponse.json(
-          { success: false, error: 'Rate limit exceeded. Please try again later.' },
-          { status: 429 }
-        );
-      }
-      if (error.message.includes('insufficient') || error.message.includes('quota')) {
-        return NextResponse.json(
-          { success: false, error: 'API quota exceeded. Please check your account.' },
-          { status: 402 }
-        );
-      }
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'An error occurred while processing the recipe. Please try again.' },
-      { status: 500 }
-    );
-  }
+		return NextResponse.json(
+			{
+				success: false,
+				error:
+					"An error occurred while processing the recipe. Please try again.",
+			},
+			{ status: 500 },
+		);
+	}
 }

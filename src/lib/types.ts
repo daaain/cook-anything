@@ -32,16 +32,6 @@ export interface MessageContent {
   mimeType?: string;
 }
 
-export interface OAuthToken {
-  claudeAiOauth: {
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: number;
-    scopes: string[];
-    subscriptionType: string | null;
-  };
-}
-
 export interface ImageData {
   base64: string;
   mediaType: string;
@@ -53,7 +43,6 @@ export interface ProcessRecipeRequest {
   images: ImageData[];
   instructions?: string;
   conversationHistory?: Message[];
-  token: string;
   measureSystem?: MeasureSystem;
   servings?: number;
 }

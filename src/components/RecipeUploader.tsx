@@ -2,16 +2,14 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Upload, X, ImagePlus, Loader2, Sparkles, Users } from 'lucide-react';
-import { ImageData, OAuthToken, Recipe, Message, MeasureSystem } from '@/lib/types';
-import { getAccessToken, getTokenStatus } from '@/lib/token';
+import { ImageData, Recipe, Message, MeasureSystem } from '@/lib/types';
 
 interface RecipeUploaderProps {
-  token: OAuthToken | null;
   onRecipeProcessed: (recipe: Recipe) => void;
   conversationHistory?: Message[];
 }
 
-export function RecipeUploader({ token, onRecipeProcessed, conversationHistory = [] }: RecipeUploaderProps) {
+export function RecipeUploader({ onRecipeProcessed, conversationHistory = [] }: RecipeUploaderProps) {
   const [images, setImages] = useState<{ data: ImageData; preview: string }[]>([]);
   const [adjustments, setAdjustments] = useState('');
   const [measureSystem, setMeasureSystem] = useState<MeasureSystem>('metric');
@@ -68,17 +66,6 @@ export function RecipeUploader({ token, onRecipeProcessed, conversationHistory =
       return;
     }
 
-    if (!token) {
-      setError('Please configure your API token in Settings first');
-      return;
-    }
-
-    const tokenStatus = getTokenStatus(token);
-    if (tokenStatus === 'expired') {
-      setError('Your API token has expired. Please update it in Settings.');
-      return;
-    }
-
     setError(null);
     setIsProcessing(true);
 
@@ -92,7 +79,6 @@ export function RecipeUploader({ token, onRecipeProcessed, conversationHistory =
           images: images.map((img) => img.data),
           instructions: adjustments || undefined,
           conversationHistory,
-          token: getAccessToken(token),
           measureSystem,
           servings,
         }),
@@ -114,8 +100,7 @@ export function RecipeUploader({ token, onRecipeProcessed, conversationHistory =
     }
   };
 
-  const tokenStatus = getTokenStatus(token);
-  const canSubmit = images.length > 0 && tokenStatus === 'valid' && !isProcessing;
+  const canSubmit = images.length > 0 && !isProcessing;
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -272,15 +257,6 @@ export function RecipeUploader({ token, onRecipeProcessed, conversationHistory =
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
             {error}
-          </div>
-        )}
-
-        {/* Token Warning */}
-        {tokenStatus !== 'valid' && (
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
-            {tokenStatus === 'expired'
-              ? 'Your API token has expired. Please update it in Settings.'
-              : 'Please configure your API token in Settings to process recipes.'}
           </div>
         )}
 

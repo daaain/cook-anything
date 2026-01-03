@@ -1,7 +1,6 @@
 'use client';
 
-import { TokenInput } from '@/components/TokenInput';
-import { Info } from 'lucide-react';
+import { Info, CheckCircle } from 'lucide-react';
 
 export default function SettingsPage() {
   return (
@@ -9,43 +8,48 @@ export default function SettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-amber-900 mb-2">Settings</h1>
-        <p className="text-amber-700">Manage your API token and preferences</p>
+        <p className="text-amber-700">Application configuration</p>
       </div>
 
-      {/* Token Input */}
-      <TokenInput />
+      {/* Server Authentication Status */}
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+        <div className="flex gap-3">
+          <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-green-800 mb-1">Server Authentication</h3>
+            <p className="text-sm text-green-700">
+              This app uses the server&apos;s Claude CLI authentication.
+              No additional configuration is required.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Info Card */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex gap-3">
           <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-medium text-blue-800 mb-1">About API Tokens</h3>
+            <h3 className="font-medium text-blue-800 mb-1">How It Works</h3>
             <p className="text-sm text-blue-700">
-              Your API token is stored locally in your browser and is only used to communicate with Claude&apos;s API.
-              It is never sent to our servers or stored externally.
+              Recipe Flow uses the Claude Code CLI for AI processing.
+              The server authenticates with Claude on your behalf using the CLI&apos;s stored credentials.
             </p>
             <p className="text-sm text-blue-700 mt-2">
-              To get a token, you&apos;ll need access to the Claude API through Anthropic&apos;s developer portal.
+              For developers: Run <code className="bg-blue-100 px-1 rounded">claude login</code> on
+              the server to set up authentication.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Token Format Help */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <h3 className="font-medium text-gray-800 mb-3">Expected Token Format</h3>
-        <pre className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 overflow-x-auto">
-{`{
-  "claudeAiOauth": {
-    "accessToken": "sk-ant-oat01-...",
-    "refreshToken": "sk-ant-ort01-...",
-    "expiresAt": 1790527580972,
-    "scopes": ["user:inference"],
-    "subscriptionType": null
-  }
-}`}
-        </pre>
+      {/* Future: API Key Support */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-60">
+        <h3 className="font-medium text-gray-600 mb-1">API Key Support</h3>
+        <p className="text-sm text-gray-500">
+          Direct API key authentication coming soon. This will allow you to use your own
+          Anthropic API key instead of the CLI authentication.
+        </p>
       </div>
     </div>
   );
