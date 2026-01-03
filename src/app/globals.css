@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fffbeb;
+  --foreground: #1f2937;
+}
+
+body {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fbbf24 100%);
+  min-height: 100vh;
+}
+
+/* Smooth transitions for timer */
+.timer-progress {
+  transition: width 1s linear;
+}
