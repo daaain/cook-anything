@@ -74,20 +74,38 @@ IMPORTANT RULES:
 8. Step numbers should be sequential across all groups`;
 }
 
-// Create Claude Code provider with streaming enabled for image support
-const claudeCode = createClaudeCode({
-  defaultSettings: {
-    streamingInput: 'always',
-  },
-});
+// Capture stderr from Claude Code CLI for better error messages
+let lastStderr = '';
+
+// Create Claude Code provider, optionally with OAuth token
+function createProvider(oauthToken?: string) {
+  return createClaudeCode({
+    defaultSettings: {
+      streamingInput: 'always',
+      stderr: (data: string) => {
+        lastStderr += data;
+        console.error('[Claude CLI stderr]:', data);
+      },
+      ...(oauthToken && {
+        env: {
+          CLAUDE_CODE_OAUTH_TOKEN: oauthToken,
+        },
+      }),
+    },
+  });
+}
 
 export async function POST(request: NextRequest) {
+  // Reset stderr capture for this request
+  lastStderr = '';
+
   try {
     const body: ProcessRecipeRequest = await request.json();
     const {
       images,
       instructions,
       conversationHistory,
+      oauthToken,
       measureSystem = 'metric',
       servings = 4,
     } = body;
@@ -149,7 +167,8 @@ export async function POST(request: NextRequest) {
     messages.push(currentUserMessage);
 
     // Call Claude API using Claude Code provider
-    // Uses CLI authentication - ensure `claude login` has been run on the server
+    // Uses OAuth token from request if provided, otherwise falls back to server's env/CLI auth
+    const claudeCode = createProvider(oauthToken);
     const { text } = await generateText({
       model: claudeCode('opus'),
       system: SYSTEM_PROMPT,
@@ -196,37 +215,94 @@ export async function POST(request: NextRequest) {
       assistantMessage: text,
     });
   } catch (error) {
-    console.error('Error processing recipe:', error);
+    // Extract detailed error information from AI SDK errors
+    const errorData = (error as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
+    const stderr = errorData?.stderr as string | undefined;
+    const exitCode = errorData?.exitCode as number | undefined;
+
+    // Use captured stderr if the error data doesn't have it
+    const capturedStderr = lastStderr.trim() || stderr?.trim();
+
+    // Log full error object for debugging
+    console.error('Full error object:', error);
+    console.error('Error keys:', error ? Object.keys(error as object) : 'null');
+
+    const errorDetails = {
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : undefined,
+      cause: error instanceof Error ? error.cause : undefined,
+      exitCode,
+      stderr: capturedStderr,
+      capturedStderr: lastStderr.trim() || '(none)',
+      data: errorData,
+    };
+
+    console.error('Error processing recipe:', JSON.stringify(errorDetails, null, 2));
+
+    // Build a helpful error message from stderr if available
+    const stderrMessage = capturedStderr;
 
     // Check for API errors
     if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+      const dataStr = JSON.stringify(errorDetails.data || {}).toLowerCase();
+      const stderrLower = (stderrMessage || '').toLowerCase();
+
+      // Detect auth errors - either explicit messages or "exited with code 1" with no other info
+      const isExitCode1 = errorMessage.includes('exited with code 1');
+      const hasNoUsefulInfo = !stderrMessage && !errorDetails.cause;
+      const likelyAuthError = isExitCode1 && hasNoUsefulInfo;
+
       if (
-        error.message.includes('401') ||
-        error.message.includes('Unauthorized') ||
-        error.message.includes('authentication')
+        likelyAuthError ||
+        errorMessage.includes('401') ||
+        errorMessage.includes('unauthorized') ||
+        errorMessage.includes('authentication') ||
+        dataStr.includes('unauthorized') ||
+        dataStr.includes('authentication') ||
+        dataStr.includes('invalid api key') ||
+        dataStr.includes('please run /login') ||
+        stderrLower.includes('invalid api key') ||
+        stderrLower.includes('please run /login') ||
+        stderrLower.includes('unauthorized')
       ) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Authentication failed. Ensure the server has run `claude login`.',
+            error:
+              stderrMessage ||
+              (likelyAuthError
+                ? 'Claude Code CLI failed (likely authentication issue). Please check your OAuth token in Settings.'
+                : 'Authentication failed. Please set your OAuth token in Settings.'),
+            details: { exitCode, stderr: stderrMessage },
           },
           { status: 401 },
         );
       }
-      if (error.message.includes('429') || error.message.includes('rate limit')) {
+      if (
+        errorMessage.includes('429') ||
+        errorMessage.includes('rate limit') ||
+        dataStr.includes('rate limit')
+      ) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Rate limit exceeded. Please try again later.',
+            error: stderrMessage || 'Rate limit exceeded. Please try again later.',
+            details: { exitCode, stderr: stderrMessage },
           },
           { status: 429 },
         );
       }
-      if (error.message.includes('insufficient') || error.message.includes('quota')) {
+      if (
+        errorMessage.includes('insufficient') ||
+        errorMessage.includes('quota') ||
+        dataStr.includes('quota')
+      ) {
         return NextResponse.json(
           {
             success: false,
-            error: 'API quota exceeded. Please check your account.',
+            error: stderrMessage || 'API quota exceeded. Please check your account.',
+            details: { exitCode, stderr: stderrMessage },
           },
           { status: 402 },
         );
@@ -236,7 +312,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'An error occurred while processing the recipe. Please try again.',
+        error: stderrMessage || errorDetails.message || 'An error occurred while processing the recipe.',
+        details: { exitCode, stderr: stderrMessage },
       },
       { status: 500 },
     );

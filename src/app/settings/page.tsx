@@ -1,8 +1,46 @@
 'use client';
 
-import { Info, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Info, CheckCircle, AlertCircle, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { getOAuthToken, setOAuthToken, clearOAuthToken } from '@/lib/storage';
 
 export default function SettingsPage() {
+  const [token, setToken] = useState('');
+  const [savedToken, setSavedToken] = useState<string | null>(null);
+  const [showToken, setShowToken] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const stored = getOAuthToken();
+    setSavedToken(stored);
+    if (stored) {
+      setToken(stored);
+    }
+  }, []);
+
+  const handleSave = () => {
+    if (token.trim()) {
+      setOAuthToken(token.trim());
+      setSavedToken(token.trim());
+    }
+  };
+
+  const handleClear = () => {
+    clearOAuthToken();
+    setToken('');
+    setSavedToken(null);
+  };
+
+  const handleCopyCommand = async () => {
+    await navigator.clipboard.writeText('claude setup-token');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const maskedToken = savedToken
+    ? `${savedToken.slice(0, 8)}...${savedToken.slice(-4)}`
+    : null;
+
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
       {/* Header */}
@@ -11,17 +49,96 @@ export default function SettingsPage() {
         <p className="text-amber-700">Application configuration</p>
       </div>
 
-      {/* Server Authentication Status */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-        <div className="flex gap-3">
-          <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-green-800 mb-1">Server Authentication</h3>
-            <p className="text-sm text-green-700">
-              This app uses the server&apos;s Claude CLI authentication. No additional configuration
-              is required.
-            </p>
+      {/* Authentication Status */}
+      {savedToken ? (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="flex gap-3">
+            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-medium text-green-800 mb-1">Authenticated</h3>
+              <p className="text-sm text-green-700">
+                OAuth token is configured: <code className="bg-green-100 px-1 rounded">{maskedToken}</code>
+              </p>
+            </div>
           </div>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-amber-800 mb-1">Authentication Required</h3>
+              <p className="text-sm text-amber-700">
+                Please set your OAuth token to use the recipe analysis feature.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OAuth Token Input */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+        <div>
+          <h3 className="font-medium text-gray-800 mb-1">OAuth Token</h3>
+          <p className="text-sm text-gray-600 mb-3">
+            Generate a token by running this command locally:
+          </p>
+          <div className="flex items-center gap-2 mb-4">
+            <code className="flex-1 bg-gray-100 px-3 py-2 rounded-lg text-sm font-mono">
+              claude setup-token
+            </code>
+            <button
+              type="button"
+              onClick={handleCopyCommand}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Copy command"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+            Paste your token here
+          </label>
+          <div className="relative">
+            <input
+              id="token"
+              type={showToken ? 'text' : 'password'}
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="Enter your OAuth token..."
+              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-mono text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setShowToken(!showToken)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+            >
+              {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!token.trim() || token === savedToken}
+            className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Save Token
+          </button>
+          {savedToken && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -32,24 +149,14 @@ export default function SettingsPage() {
           <div>
             <h3 className="font-medium text-blue-800 mb-1">How It Works</h3>
             <p className="text-sm text-blue-700">
-              Recipe Flow uses the Claude Code CLI for AI processing. The server authenticates with
-              Claude on your behalf using the CLI&apos;s stored credentials.
+              Recipe Flow uses the Claude Code CLI for AI processing. Your OAuth token is stored
+              locally in your browser and sent with each request.
             </p>
             <p className="text-sm text-blue-700 mt-2">
-              For developers: Run <code className="bg-blue-100 px-1 rounded">claude login</code> on
-              the server to set up authentication.
+              The token is generated from your Claude Pro/Max subscription via the CLI.
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Future: API Key Support */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-60">
-        <h3 className="font-medium text-gray-600 mb-1">API Key Support</h3>
-        <p className="text-sm text-gray-500">
-          Direct API key authentication coming soon. This will allow you to use your own Anthropic
-          API key instead of the CLI authentication.
-        </p>
       </div>
     </div>
   );

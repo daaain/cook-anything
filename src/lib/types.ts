@@ -45,6 +45,7 @@ export interface ProcessRecipeRequest {
   conversationHistory?: Message[];
   measureSystem?: MeasureSystem;
   servings?: number;
+  oauthToken?: string;
 }
 
 export interface ProcessRecipeResponse {

@@ -1,6 +1,33 @@
 import { Recipe } from './types';
 
 const RECIPES_STORAGE_KEY = 'recipe-flow-recipes';
+const OAUTH_TOKEN_KEY = 'recipe-flow-oauth-token';
+
+// OAuth token management
+export function getOAuthToken(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return localStorage.getItem(OAUTH_TOKEN_KEY);
+}
+
+export function setOAuthToken(token: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(OAUTH_TOKEN_KEY, token);
+}
+
+export function clearOAuthToken(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.removeItem(OAUTH_TOKEN_KEY);
+}
+
+export function hasOAuthToken(): boolean {
+  return !!getOAuthToken();
+}
 
 export function generateSlug(title: string): string {
   return title

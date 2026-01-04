@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
-import { Upload, X, ImagePlus, Loader2, Sparkles, Users } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, X, ImagePlus, Loader2, Sparkles, Users, AlertCircle } from 'lucide-react';
 import { ImageData, Recipe, Message, MeasureSystem } from '@/lib/types';
+import { getOAuthToken } from '@/lib/storage';
 
 interface RecipeUploaderProps {
   onRecipeProcessed: (recipe: Recipe) => void;
@@ -19,7 +20,13 @@ export function RecipeUploader({
   const [servings, setServings] = useState(4);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Check for token on mount
+  useEffect(() => {
+    setHasToken(!!getOAuthToken());
+  }, []);
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -69,6 +76,12 @@ export function RecipeUploader({
       return;
     }
 
+    const oauthToken = getOAuthToken();
+    if (!oauthToken) {
+      setError('Please set your OAuth token in Settings first');
+      return;
+    }
+
     setError(null);
     setIsProcessing(true);
 
@@ -84,6 +97,7 @@ export function RecipeUploader({
           conversationHistory,
           measureSystem,
           servings,
+          oauthToken,
         }),
       });
 
@@ -111,6 +125,23 @@ export function RecipeUploader({
         <Sparkles className="w-5 h-5 text-amber-500" />
         Create Recipe Flow
       </h2>
+
+      {/* Auth Warning */}
+      {hasToken === false && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="text-amber-800 font-medium">Authentication required</p>
+            <p className="text-amber-700">
+              Please{' '}
+              <a href="/settings" className="underline font-medium hover:text-amber-900">
+                set your OAuth token in Settings
+              </a>{' '}
+              to use recipe analysis.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Image Upload Area */}
       <div className="space-y-4">
