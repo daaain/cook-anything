@@ -2,6 +2,10 @@
 
 A Next.js web app that turns recipe screenshots or ingredient photos into interactive cooking flowcharts using Claude AI.
 
+Demo video showing a recipe modification flow using screenshots and pasting them into the app:
+
+https://github.com/user-attachments/assets/3ee93c37-4a6d-4f3f-b37d-ffc398240973
+
 ## Features
 
 - **Recipe Processing**: Upload recipe screenshots to extract structured flowcharts, or photograph your ingredients to generate a recipe from scratch
