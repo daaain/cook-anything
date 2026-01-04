@@ -1,16 +1,26 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, X, ImagePlus, Loader2, Sparkles, Users, AlertCircle } from 'lucide-react';
-import { ImageData, Recipe, Message, MeasureSystem } from '@/lib/types';
 import {
-  getOAuthToken,
-  getModel,
+  AlertCircle,
+  ClipboardPaste,
+  ImagePlus,
+  Loader2,
+  Sparkles,
+  Upload,
+  Users,
+  X,
+} from 'lucide-react';
+import Image from 'next/image';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
   getMeasureSystem,
-  setMeasureSystem as saveMeasureSystem,
+  getModel,
+  getOAuthToken,
   getServings,
+  setMeasureSystem as saveMeasureSystem,
   setServings as saveServings,
 } from '@/lib/storage';
+import type { ImageData, MeasureSystem, Message, Recipe } from '@/lib/types';
 
 interface RecipeUploaderProps {
   onRecipeProcessed: (recipe: Recipe) => void;
@@ -54,14 +64,10 @@ export function RecipeUploader({
     saveServings(newServings);
   };
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    const newImages: { data: ImageData; preview: string }[] = [];
-
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) continue;
+  // Helper function to process a single image file into base64 + preview
+  const processImageFile = useCallback(
+    async (file: File): Promise<{ data: ImageData; preview: string } | null> => {
+      if (!file.type.startsWith('image/')) return null;
 
       const base64 = await new Promise<string>((resolve) => {
         const reader = new FileReader();
@@ -80,21 +86,115 @@ export function RecipeUploader({
         reader.readAsDataURL(file);
       });
 
-      newImages.push({
+      return {
         data: { base64, mediaType: file.type },
         preview,
-      });
-    }
+      };
+    },
+    [],
+  );
 
-    setImages((prev) => [...prev, ...newImages]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, []);
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (!files) return;
+
+      const newImages: { data: ImageData; preview: string }[] = [];
+
+      for (const file of Array.from(files)) {
+        const processed = await processImageFile(file);
+        if (processed) {
+          newImages.push(processed);
+        }
+      }
+
+      setImages((prev) => [...prev, ...newImages]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    },
+    [processImageFile],
+  );
 
   const removeImage = useCallback((index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   }, []);
+
+  // Handle keyboard paste (Ctrl+V / Cmd+V) for images
+  const handlePaste = useCallback(
+    async (e: ClipboardEvent) => {
+      if (isProcessing) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      // Check if clipboard contains any images
+      const imageItems = Array.from(items).filter((item) => item.type.startsWith('image/'));
+      if (imageItems.length === 0) return;
+
+      // Don't intercept if focus is on the textarea (let text paste work normally)
+      const activeElement = document.activeElement;
+      if (activeElement?.tagName === 'TEXTAREA') return;
+
+      e.preventDefault();
+
+      const newImages: { data: ImageData; preview: string }[] = [];
+      for (const item of imageItems) {
+        const file = item.getAsFile();
+        if (file) {
+          const processed = await processImageFile(file);
+          if (processed) {
+            newImages.push(processed);
+          }
+        }
+      }
+
+      if (newImages.length > 0) {
+        setImages((prev) => [...prev, ...newImages]);
+      }
+    },
+    [isProcessing, processImageFile],
+  );
+
+  // Programmatic paste for mobile button - uses Clipboard API
+  const handlePasteFromClipboard = useCallback(async () => {
+    if (isProcessing) return;
+
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      const newImages: { data: ImageData; preview: string }[] = [];
+
+      for (const clipboardItem of clipboardItems) {
+        // Find image types in clipboard item
+        const imageType = clipboardItem.types.find((type) => type.startsWith('image/'));
+        if (imageType) {
+          const blob = await clipboardItem.getType(imageType);
+          const file = new File([blob], 'pasted-image', { type: imageType });
+          const processed = await processImageFile(file);
+          if (processed) {
+            newImages.push(processed);
+          }
+        }
+      }
+
+      if (newImages.length > 0) {
+        setImages((prev) => [...prev, ...newImages]);
+      } else {
+        setError('No image found in clipboard. Try copying an image first.');
+      }
+    } catch {
+      // Clipboard API failed - likely permission denied or not supported
+      setError('Unable to access clipboard. Try using Ctrl+V (or Cmd+V on Mac) instead.');
+    }
+  }, [isProcessing, processImageFile]);
+
+  // Global paste event listener
+  useEffect(() => {
+    document.addEventListener('paste', handlePaste);
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, [handlePaste]);
 
   const handleSubmit = async () => {
     // Allow either images or text instructions (or both)
@@ -152,12 +252,22 @@ export function RecipeUploader({
       <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-amber-500" />
         Create Recipe Flow
+        <button
+          type="button"
+          onClick={handlePasteFromClipboard}
+          disabled={isProcessing}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Paste image from clipboard"
+        >
+          <ClipboardPaste className="w-4 h-4" />
+          Paste
+        </button>
       </h2>
 
       {/* Auth Warning */}
       {hasToken === false && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="text-sm">
             <p className="text-amber-800 font-medium">Authentication required</p>
             <p className="text-amber-700">
@@ -196,10 +306,10 @@ export function RecipeUploader({
               className={`w-10 h-10 mx-auto mb-3 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`}
             />
             <p className={`font-medium ${isProcessing ? 'text-gray-500' : 'text-gray-700'}`}>
-              Upload recipe screenshots (optional)
+              Upload recipe screenshots or ingredients photos (optional)
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              Or enter text below to create a recipe without images
+              Or only enter text below to create a recipe without images
             </p>
           </label>
         </div>
@@ -208,13 +318,17 @@ export function RecipeUploader({
         {images.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {images.map((img, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: Images have no natural unique ID
               <div key={index} className="relative group aspect-square">
-                <img
+                <Image
                   src={img.preview}
                   alt={`Recipe image ${index + 1}`}
-                  className="w-full h-full object-cover rounded-lg"
+                  fill
+                  className="object-cover rounded-lg"
+                  unoptimized
                 />
                 <button
+                  type="button"
                   onClick={() => removeImage(index)}
                   disabled={isProcessing}
                   className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity disabled:opacity-50"
@@ -254,8 +368,14 @@ export function RecipeUploader({
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Measure System Toggle */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Measurements</label>
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            <span id="measurements-label" className="block text-sm font-medium text-gray-700 mb-2">
+              Measurements
+            </span>
+            <div
+              className="flex rounded-lg border border-gray-200 overflow-hidden"
+              role="radiogroup"
+              aria-labelledby="measurements-label"
+            >
               <button
                 type="button"
                 onClick={() => handleMeasureSystemChange('metric')}
@@ -296,7 +416,7 @@ export function RecipeUploader({
                 min={1}
                 max={100}
                 value={servings}
-                onChange={(e) => handleServingsChange(parseInt(e.target.value) || 1)}
+                onChange={(e) => handleServingsChange(parseInt(e.target.value, 10) || 1)}
                 disabled={isProcessing}
                 className="w-full py-2 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
               />
@@ -339,6 +459,7 @@ export function RecipeUploader({
 
         {/* Submit Button */}
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={!canSubmit}
           className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${

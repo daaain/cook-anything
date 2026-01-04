@@ -4,7 +4,7 @@ import { Navigation } from '@/components/Navigation';
 
 export const metadata: Metadata = {
   title: 'Recipe Flow',
-  description: 'Transform recipe screenshots into interactive cooking flowcharts with timers',
+  description: 'Transform recipes into interactive cooking flowcharts with timers',
 };
 
 export default function RootLayout({

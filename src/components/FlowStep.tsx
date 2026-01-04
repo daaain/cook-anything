@@ -1,13 +1,14 @@
 'use client';
 
+import { ChevronDown, ChevronUp, Clock, Flame, Scissors } from 'lucide-react';
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Scissors, Flame, Clock } from 'lucide-react';
-import { Step } from '@/lib/types';
+import type { Step } from '@/lib/types';
 import { StepTimer } from './StepTimer';
 
 interface FlowStepProps {
   step: Step;
   showConnector?: boolean;
+  isMuted?: boolean;
 }
 
 const typeConfig = {
@@ -34,7 +35,7 @@ const typeConfig = {
   },
 };
 
-export function FlowStep({ step, showConnector = true }: FlowStepProps) {
+export function FlowStep({ step, showConnector = true, isMuted = false }: FlowStepProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const config = typeConfig[step.type];
   const Icon = config.icon;
@@ -47,19 +48,20 @@ export function FlowStep({ step, showConnector = true }: FlowStepProps) {
       <div className={`${config.bg} ${config.border} border rounded-xl overflow-hidden`}>
         {/* Header - Always visible, clickable */}
         <button
+          type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/50 transition-colors"
+          className="w-full flex items-center gap-2 sm:gap-3 p-3 sm:p-4 text-left hover:bg-white/50 transition-colors min-w-0"
         >
           {/* Step Number */}
           <div
-            className={`w-8 h-8 rounded-full ${config.badge} flex items-center justify-center text-sm font-semibold`}
+            className={`w-8 h-8 rounded-full ${config.badge} flex items-center justify-center text-sm font-semibold shrink-0`}
           >
             {step.stepNumber}
           </div>
 
           {/* Type Badge & Icon */}
           <div
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${config.badge} text-xs font-medium`}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${config.badge} text-xs font-medium shrink-0`}
           >
             <Icon className="w-3.5 h-3.5" />
             {config.label}
@@ -67,18 +69,18 @@ export function FlowStep({ step, showConnector = true }: FlowStepProps) {
 
           {/* Brief instruction preview when collapsed */}
           {!isExpanded && (
-            <p className="flex-1 text-sm text-gray-600 truncate">{step.instruction}</p>
+            <p className="flex-1 text-sm text-gray-600 truncate min-w-0">{step.instruction}</p>
           )}
 
           {/* Timer badge if applicable */}
           {step.timerMinutes > 0 && (
-            <span className="text-xs text-gray-500 bg-white/50 px-2 py-1 rounded-full">
+            <span className="text-xs text-gray-500 bg-white/50 px-2 py-1 rounded-full shrink-0 whitespace-nowrap">
               {step.timerMinutes} min
             </span>
           )}
 
           {/* Expand/Collapse indicator */}
-          <div className="text-gray-400">
+          <div className="text-gray-400 shrink-0">
             {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </div>
         </button>
@@ -92,10 +94,10 @@ export function FlowStep({ step, showConnector = true }: FlowStepProps) {
             {/* Ingredients */}
             {step.ingredients.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {step.ingredients.map((ingredient, i) => (
+                {step.ingredients.map((ingredient) => (
                   <span
-                    key={i}
-                    className="inline-block px-2 py-1 bg-white/70 rounded-full text-xs text-gray-600 border border-gray-200"
+                    key={ingredient}
+                    className="inline-block px-2 py-1 bg-white/70 rounded-full text-center text-s text-gray-600 border border-gray-200"
                   >
                     {ingredient}
                   </span>
@@ -105,7 +107,12 @@ export function FlowStep({ step, showConnector = true }: FlowStepProps) {
 
             {/* Timer */}
             {step.timerMinutes > 0 && (
-              <StepTimer initialMinutes={step.timerMinutes} stepNumber={step.stepNumber} />
+              <StepTimer
+                initialMinutes={step.timerMinutes}
+                stepNumber={step.stepNumber}
+                ingredients={step.ingredients}
+                isMuted={isMuted}
+              />
             )}
           </div>
         )}

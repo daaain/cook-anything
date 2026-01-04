@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Info, CheckCircle, AlertCircle, Eye, EyeOff, Copy, Check, Cpu } from 'lucide-react';
-import { getOAuthToken, setOAuthToken, clearOAuthToken, getModel, setModel } from '@/lib/storage';
-import { ModelId } from '@/lib/types';
+import { AlertCircle, Check, CheckCircle, Copy, Cpu, Eye, EyeOff, Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { clearOAuthToken, getModel, getOAuthToken, setModel, setOAuthToken } from '@/lib/storage';
+import type { ModelId } from '@/lib/types';
 
 export default function SettingsPage() {
   const [token, setToken] = useState('');
@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelId>('opus');
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Valid pattern for SSR hydration */
   useEffect(() => {
     const stored = getOAuthToken();
     setSavedToken(stored);
@@ -20,6 +21,7 @@ export default function SettingsPage() {
     }
     setSelectedModel(getModel());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleModelChange = (model: ModelId) => {
     setSelectedModel(model);

@@ -1,19 +1,60 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Plus, Minus, Check } from 'lucide-react';
+import { Check, Minus, Pause, Play, Plus, RotateCcw } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface StepTimerProps {
   initialMinutes: number;
   stepNumber: number;
+  ingredients: string[];
+  isMuted?: boolean;
 }
 
-export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
+function speakCompletion(ingredients: string[], stepNumber: number) {
+  if (!('speechSynthesis' in window)) return;
+
+  let message: string;
+  if (ingredients.length === 0) {
+    message = `Step ${stepNumber} is complete`;
+  } else if (ingredients.length === 1) {
+    message = `${ingredients[0]} ready on step ${stepNumber}`;
+  } else {
+    const last = ingredients[ingredients.length - 1];
+    const rest = ingredients.slice(0, -1).join(', ');
+    message = `${rest} and ${last} ready on step ${stepNumber}`;
+  }
+
+  const utterance = new SpeechSynthesisUtterance(message);
+  utterance.lang = 'en-GB';
+
+  // Try to find a better quality voice
+  const voices = speechSynthesis.getVoices();
+  const preferredVoice =
+    voices.find(
+      (v) =>
+        v.lang.startsWith('en') &&
+        (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural')),
+    ) ?? voices.find((v) => v.lang.startsWith('en-GB'));
+
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+
+  speechSynthesis.speak(utterance);
+}
+
+export function StepTimer({
+  initialMinutes,
+  stepNumber,
+  ingredients,
+  isMuted = false,
+}: StepTimerProps) {
   const [totalSeconds, setTotalSeconds] = useState(initialMinutes * 60);
   const [remainingSeconds, setRemainingSeconds] = useState(initialMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const shouldSpeakRef = useRef(false);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -57,10 +98,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
           if (prev <= 1) {
             setIsRunning(false);
             setIsComplete(true);
-            // Play a sound or vibrate
-            if ('vibrate' in navigator) {
-              navigator.vibrate([200, 100, 200]);
-            }
+            shouldSpeakRef.current = true;
             return 0;
           }
           return prev - 1;
@@ -75,6 +113,14 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
     };
   }, [isRunning, remainingSeconds]);
 
+  // Handle speech separately to avoid React Strict Mode double-invocation
+  useEffect(() => {
+    if (isComplete && shouldSpeakRef.current && !isMuted) {
+      shouldSpeakRef.current = false;
+      speakCompletion(ingredients, stepNumber);
+    }
+  }, [isComplete, ingredients, stepNumber, isMuted]);
+
   return (
     <div
       className={`rounded-lg p-3 transition-colors ${isComplete ? 'bg-green-100' : 'bg-gray-50'}`}
@@ -84,6 +130,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
         <div className="flex items-center gap-2">
           {!isRunning && !isComplete && (
             <button
+              type="button"
               onClick={() => adjustTime(-1)}
               className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
               disabled={totalSeconds <= 60}
@@ -108,7 +155,11 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
           </div>
 
           {!isRunning && !isComplete && (
-            <button onClick={() => adjustTime(1)} className="p-1 text-gray-400 hover:text-gray-600">
+            <button
+              type="button"
+              onClick={() => adjustTime(1)}
+              className="p-1 text-gray-400 hover:text-gray-600"
+            >
               <Plus className="w-4 h-4" />
             </button>
           )}
@@ -128,6 +179,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
         <div className="flex items-center gap-1">
           {isComplete ? (
             <button
+              type="button"
               onClick={reset}
               className="p-2 rounded-full bg-green-200 text-green-700 hover:bg-green-300"
               title="Reset"
@@ -137,6 +189,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
           ) : (
             <>
               <button
+                type="button"
                 onClick={isRunning ? pause : start}
                 className={`p-2 rounded-full ${
                   isRunning
@@ -149,6 +202,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
               </button>
 
               <button
+                type="button"
                 onClick={reset}
                 className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
                 title="Reset"
