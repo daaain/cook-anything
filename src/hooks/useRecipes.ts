@@ -1,23 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Recipe } from '@/lib/types';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  getSavedRecipes,
-  saveRecipe,
   deleteRecipe,
   getRecipeBySlug,
+  getSavedRecipes,
+  saveRecipe,
   updateRecipe,
 } from '@/lib/storage';
+import type { Recipe } from '@/lib/types';
 
 export function useRecipes() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Valid pattern for SSR hydration */
   useEffect(() => {
     setRecipes(getSavedRecipes());
     setIsLoaded(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const refresh = useCallback(() => {
     setRecipes(getSavedRecipes());

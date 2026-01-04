@@ -1,4 +1,4 @@
-import { Recipe, ModelId, MeasureSystem } from './types';
+import type { MeasureSystem, ModelId, Recipe } from './types';
 
 const RECIPES_STORAGE_KEY = 'recipe-flow-recipes';
 const OAUTH_TOKEN_KEY = 'recipe-flow-oauth-token';
@@ -82,7 +82,7 @@ export function getServings(): number {
   const stored = localStorage.getItem(SERVINGS_KEY);
   if (stored) {
     const parsed = parseInt(stored, 10);
-    if (!isNaN(parsed) && parsed >= 1 && parsed <= 100) {
+    if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 100) {
       return parsed;
     }
   }

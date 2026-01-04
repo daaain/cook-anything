@@ -1,11 +1,11 @@
 'use client';
 
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { RecipeLibrary } from '@/components/RecipeLibrary';
 import { useRecipes } from '@/hooks/useRecipes';
-import { Recipe } from '@/lib/types';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
+import type { Recipe } from '@/lib/types';
 
 export default function LibraryPage() {
   const router = useRouter();

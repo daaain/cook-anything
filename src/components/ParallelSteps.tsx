@@ -1,15 +1,20 @@
 'use client';
 
-import { FlowGroup } from '@/lib/types';
-import { FlowStep } from './FlowStep';
 import { GitBranch } from 'lucide-react';
+import type { FlowGroup } from '@/lib/types';
+import { FlowStep } from './FlowStep';
 
 interface ParallelStepsProps {
   group: FlowGroup;
   showConnector?: boolean;
+  isMuted?: boolean;
 }
 
-export function ParallelSteps({ group, showConnector = true }: ParallelStepsProps) {
+export function ParallelSteps({
+  group,
+  showConnector = true,
+  isMuted = false,
+}: ParallelStepsProps) {
   return (
     <div className="relative">
       {/* Connector Line */}
@@ -25,8 +30,8 @@ export function ParallelSteps({ group, showConnector = true }: ParallelStepsProp
         {/* Parallel Steps */}
         <div className="grid gap-3 sm:grid-cols-2">
           {group.steps.map((step) => (
-            <div key={step.stepNumber}>
-              <FlowStep step={step} showConnector={false} />
+            <div key={step.stepNumber} className="min-w-0">
+              <FlowStep step={step} showConnector={false} isMuted={isMuted} />
             </div>
           ))}
         </div>

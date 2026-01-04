@@ -1,8 +1,8 @@
 'use client';
 
+import { BookOpen, ChefHat, Home, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Settings, ChefHat } from 'lucide-react';
 
 export function Navigation() {
   const pathname = usePathname();

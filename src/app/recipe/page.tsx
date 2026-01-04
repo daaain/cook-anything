@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { FlowChart } from '@/components/FlowChart';
-import { RecipeUploader } from '@/components/RecipeUploader';
-import { RecipeExport } from '@/components/RecipeExport';
-import { useRecipes } from '@/hooks/useRecipes';
-import { Recipe, Message } from '@/lib/types';
-import { ArrowLeft, Edit3, X, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit3, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { FlowChart } from '@/components/FlowChart';
+import { RecipeExport } from '@/components/RecipeExport';
+import { RecipeUploader } from '@/components/RecipeUploader';
+import { useRecipes } from '@/hooks/useRecipes';
+import type { Message, Recipe } from '@/lib/types';
 
 /**
  * Extract recipe content without metadata fields that shouldn't be in conversation history.
@@ -17,6 +17,7 @@ import Link from 'next/link';
 function getRecipeContent(
   recipe: Recipe,
 ): Omit<Recipe, 'conversationHistory' | 'slug' | 'savedAt'> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Intentionally omitting these fields
   const { conversationHistory, slug, savedAt, ...recipeContent } = recipe;
   return recipeContent;
 }
@@ -31,6 +32,7 @@ function RecipePageContent() {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- Valid pattern for SSR hydration */
   useEffect(() => {
     if (slug) {
       const loadedRecipe = getBySlug(slug);
@@ -38,6 +40,7 @@ function RecipePageContent() {
     }
     setIsLoaded(true);
   }, [slug, getBySlug]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   /**
    * Build conversation history that includes the current recipe for editing.
@@ -126,7 +129,7 @@ function RecipePageContent() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
       {/* Header Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/library"
           className="flex items-center gap-2 text-amber-700 hover:text-amber-800 font-medium"
@@ -135,10 +138,11 @@ function RecipePageContent() {
           Library
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <RecipeExport recipe={recipe} />
 
           <button
+            type="button"
             onClick={() => setIsEditing(!isEditing)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               isEditing
@@ -160,6 +164,7 @@ function RecipePageContent() {
           </button>
 
           <button
+            type="button"
             onClick={handleDelete}
             className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
           >

@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { RecipeUploader } from '@/components/RecipeUploader';
-import { Recipe } from '@/lib/types';
 import { useRecipes } from '@/hooks/useRecipes';
+import type { Recipe } from '@/lib/types';
 
 export default function HomePage() {
   const router = useRouter();
@@ -21,9 +21,7 @@ export default function HomePage() {
       {/* Hero */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-amber-900 mb-2">Recipe Flow</h1>
-        <p className="text-amber-700">
-          Transform recipe screenshots into interactive cooking flowcharts
-        </p>
+        <p className="text-amber-700">Transform recipes into interactive cooking flowcharts</p>
       </div>
 
       {/* Recipe Uploader */}

@@ -1,7 +1,7 @@
 'use client';
 
-import { Recipe } from '@/lib/types';
-import { Trash2, ChevronRight, Clock, Users } from 'lucide-react';
+import { ChevronRight, Clock, Trash2, Users } from 'lucide-react';
+import type { Recipe } from '@/lib/types';
 
 interface RecipeLibraryProps {
   recipes: Recipe[];
@@ -30,38 +30,40 @@ export function RecipeLibrary({ recipes, onSelect, onDelete }: RecipeLibraryProp
         {recipes.map((recipe) => (
           <div
             key={recipe.slug}
-            className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors"
+            className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors"
           >
             <button
+              type="button"
               onClick={() => onSelect(recipe)}
-              className="flex-1 flex items-center gap-3 text-left"
+              className="flex-1 min-w-0 text-left"
             >
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-gray-800 truncate">{recipe.title}</h3>
-                <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                  {recipe.servings && (
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      {recipe.servings}
-                    </span>
-                  )}
-                  {recipe.savedAt && <span>{new Date(recipe.savedAt).toLocaleDateString()}</span>}
-                </div>
+              <h3 className="font-medium text-gray-800">{recipe.title}</h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500">
+                {recipe.servings && (
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {recipe.servings}
+                  </span>
+                )}
+                {recipe.savedAt && <span>{new Date(recipe.savedAt).toLocaleDateString()}</span>}
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
             </button>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm('Delete this recipe?')) {
-                  onDelete(recipe.slug!);
-                }
-              }}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm('Delete this recipe?')) {
+                    if (recipe.slug) onDelete(recipe.slug);
+                  }
+                }}
+                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ))}
       </div>

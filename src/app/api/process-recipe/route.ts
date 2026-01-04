@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClaudeCode } from 'ai-sdk-provider-claude-code';
 import {
+  type AssistantModelMessage,
   generateText,
+  type ImagePart,
+  type ModelMessage,
   Output,
-  ModelMessage,
-  UserModelMessage,
-  AssistantModelMessage,
-  ImagePart,
-  TextPart,
+  type TextPart,
+  type UserModelMessage,
 } from 'ai';
+import { createClaudeCode } from 'ai-sdk-provider-claude-code';
+import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ProcessRecipeRequest, Recipe, MeasureSystem, ModelId } from '@/lib/types';
+import type { MeasureSystem, ProcessRecipeRequest, Recipe } from '@/lib/types';
 
 // Zod schema for structured output - guarantees valid JSON
 const StepSchema = z.object({
@@ -133,16 +133,12 @@ INSTRUCTIONS:
 11. Step numbers should be sequential across all groups`;
 }
 
-// Capture stderr from Claude Code CLI for better error messages
-let lastStderr = '';
-
 // Create Claude Code provider, optionally with OAuth token
 function createProvider(oauthToken?: string) {
   return createClaudeCode({
     defaultSettings: {
       streamingInput: 'always',
       stderr: (data: string) => {
-        lastStderr += data;
         console.error('[Claude CLI stderr]:', data);
       },
       env: {
@@ -158,9 +154,6 @@ function createProvider(oauthToken?: string) {
 }
 
 export async function POST(request: NextRequest) {
-  // Reset stderr capture for this request
-  lastStderr = '';
-
   try {
     const body: ProcessRecipeRequest = await request.json();
     const {
@@ -256,110 +249,33 @@ export async function POST(request: NextRequest) {
       recipe: recipeWithSettings,
     });
   } catch (error) {
-    // Extract detailed error information from AI SDK errors
-    const errorData = (error as Record<string, unknown>)?.data as
-      | Record<string, unknown>
-      | undefined;
-    const stderr = errorData?.stderr as string | undefined;
-    const exitCode = errorData?.exitCode as number | undefined;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : undefined;
+    const errorLower = errorMessage.toLowerCase();
 
-    // Use captured stderr if the error data doesn't have it
-    const capturedStderr = lastStderr.trim() || stderr?.trim();
+    console.error('Error processing recipe:', { name: errorName, message: errorMessage });
 
-    // Log full error object for debugging
-    console.error('Full error object:', error);
-    console.error('Error keys:', error ? Object.keys(error as object) : 'null');
-
-    const errorDetails = {
-      message: error instanceof Error ? error.message : String(error),
-      name: error instanceof Error ? error.name : undefined,
-      cause: error instanceof Error ? error.cause : undefined,
-      exitCode,
-      stderr: capturedStderr,
-      capturedStderr: lastStderr.trim() || '(none)',
-      data: errorData,
-    };
-
-    console.error('Error processing recipe:', JSON.stringify(errorDetails, null, 2));
-
-    // Build a helpful error message from stderr if available
-    const stderrMessage = capturedStderr;
-
-    // Check for API errors
-    if (error instanceof Error) {
-      const errorMessage = error.message.toLowerCase();
-      const dataStr = JSON.stringify(errorDetails.data || {}).toLowerCase();
-      const stderrLower = (stderrMessage || '').toLowerCase();
-
-      // Detect auth errors - either explicit messages or "exited with code 1" with no other info
-      const isExitCode1 = errorMessage.includes('exited with code 1');
-      const hasNoUsefulInfo = !stderrMessage && !errorDetails.cause;
-      const likelyAuthError = isExitCode1 && hasNoUsefulInfo;
-
-      if (
-        likelyAuthError ||
-        errorMessage.includes('401') ||
-        errorMessage.includes('unauthorized') ||
-        errorMessage.includes('authentication') ||
-        dataStr.includes('unauthorized') ||
-        dataStr.includes('authentication') ||
-        dataStr.includes('invalid api key') ||
-        dataStr.includes('please run /login') ||
-        stderrLower.includes('invalid api key') ||
-        stderrLower.includes('please run /login') ||
-        stderrLower.includes('unauthorized')
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              stderrMessage ||
-              (likelyAuthError
-                ? 'Claude Code CLI failed (likely authentication issue). Please check your OAuth token in Settings.'
-                : 'Authentication failed. Please set your OAuth token in Settings.'),
-            details: { exitCode, stderr: stderrMessage },
-          },
-          { status: 401 },
-        );
-      }
-      if (
-        errorMessage.includes('429') ||
-        errorMessage.includes('rate limit') ||
-        dataStr.includes('rate limit')
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: stderrMessage || 'Rate limit exceeded. Please try again later.',
-            details: { exitCode, stderr: stderrMessage },
-          },
-          { status: 429 },
-        );
-      }
-      if (
-        errorMessage.includes('insufficient') ||
-        errorMessage.includes('quota') ||
-        dataStr.includes('quota')
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: stderrMessage || 'API quota exceeded. Please check your account.',
-            details: { exitCode, stderr: stderrMessage },
-          },
-          { status: 402 },
-        );
-      }
+    // Check for authentication errors (AI_LoadAPIKeyError from provider)
+    if (
+      errorName === 'AI_LoadAPIKeyError' ||
+      errorLower.includes('/login') ||
+      errorLower.includes('invalid api key') ||
+      errorLower.includes('unauthorized') ||
+      errorLower.includes('authentication')
+    ) {
+      return NextResponse.json({ success: false, error: errorMessage }, { status: 401 });
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          stderrMessage || errorDetails.message || 'An error occurred while processing the recipe.',
-        details: { exitCode, stderr: stderrMessage },
-      },
-      { status: 500 },
-    );
+    // Check for rate limit errors
+    if (errorLower.includes('rate limit') || errorLower.includes('429')) {
+      return NextResponse.json({ success: false, error: errorMessage }, { status: 429 });
+    }
+
+    // Check for quota errors
+    if (errorLower.includes('quota') || errorLower.includes('insufficient')) {
+      return NextResponse.json({ success: false, error: errorMessage }, { status: 402 });
+    }
+
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
