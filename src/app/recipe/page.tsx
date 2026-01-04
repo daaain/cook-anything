@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { FlowChart } from '@/components/FlowChart';
 import { RecipeUploader } from '@/components/RecipeUploader';
@@ -9,6 +9,17 @@ import { useRecipes } from '@/hooks/useRecipes';
 import { Recipe, Message } from '@/lib/types';
 import { ArrowLeft, Edit3, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+
+/**
+ * Extract recipe content without metadata fields that shouldn't be in conversation history.
+ * This prevents circular references and keeps history clean.
+ */
+function getRecipeContent(
+  recipe: Recipe,
+): Omit<Recipe, 'conversationHistory' | 'slug' | 'savedAt'> {
+  const { conversationHistory, slug, savedAt, ...recipeContent } = recipe;
+  return recipeContent;
+}
 
 function RecipePageContent() {
   const searchParams = useSearchParams();
@@ -28,15 +39,37 @@ function RecipePageContent() {
     setIsLoaded(true);
   }, [slug, getBySlug]);
 
-  const handleRecipeUpdate = (updatedRecipe: Recipe) => {
-    if (!slug) return;
+  /**
+   * Build conversation history that includes the current recipe for editing.
+   * This ensures the AI has full context about what recipe is being modified.
+   */
+  const editingHistory = useMemo((): Message[] => {
+    if (!recipe) return [];
 
-    // Build conversation history for context
-    const newHistory: Message[] = [
-      ...(recipe?.conversationHistory || []),
+    // Include previous history plus the current recipe being edited
+    return [
+      ...(recipe.conversationHistory || []),
       {
         role: 'assistant' as const,
-        content: JSON.stringify(updatedRecipe),
+        content: JSON.stringify(getRecipeContent(recipe)),
+      },
+    ];
+  }, [recipe]);
+
+  const handleRecipeUpdate = (updatedRecipe: Recipe) => {
+    if (!slug || !recipe) return;
+
+    // Build conversation history: previous history + current recipe + new recipe
+    // This maintains the full edit trail for future context
+    const newHistory: Message[] = [
+      ...(recipe.conversationHistory || []),
+      {
+        role: 'assistant' as const,
+        content: JSON.stringify(getRecipeContent(recipe)),
+      },
+      {
+        role: 'assistant' as const,
+        content: JSON.stringify(getRecipeContent(updatedRecipe)),
       },
     ];
 
@@ -145,7 +178,9 @@ function RecipePageContent() {
           </p>
           <RecipeUploader
             onRecipeProcessed={handleRecipeUpdate}
-            conversationHistory={recipe.conversationHistory}
+            conversationHistory={editingHistory}
+            initialMeasureSystem={recipe.measureSystem}
+            initialServings={recipe.servingsCount}
           />
         </div>
       )}

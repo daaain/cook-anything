@@ -5,6 +5,8 @@ export interface Recipe {
   slug?: string;
   savedAt?: string;
   conversationHistory?: Message[];
+  measureSystem?: MeasureSystem;
+  servingsCount?: number;
 }
 
 export interface FlowGroup {
@@ -39,6 +41,8 @@ export interface ImageData {
 
 export type MeasureSystem = 'metric' | 'american';
 
+export type ModelId = 'haiku' | 'sonnet' | 'opus';
+
 export interface ProcessRecipeRequest {
   images: ImageData[];
   instructions?: string;
@@ -46,6 +50,7 @@ export interface ProcessRecipeRequest {
   measureSystem?: MeasureSystem;
   servings?: number;
   oauthToken?: string;
+  model?: ModelId;
 }
 
 export interface ProcessRecipeResponse {

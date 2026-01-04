@@ -3,16 +3,27 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, ImagePlus, Loader2, Sparkles, Users, AlertCircle } from 'lucide-react';
 import { ImageData, Recipe, Message, MeasureSystem } from '@/lib/types';
-import { getOAuthToken } from '@/lib/storage';
+import {
+  getOAuthToken,
+  getModel,
+  getMeasureSystem,
+  setMeasureSystem as saveMeasureSystem,
+  getServings,
+  setServings as saveServings,
+} from '@/lib/storage';
 
 interface RecipeUploaderProps {
   onRecipeProcessed: (recipe: Recipe) => void;
   conversationHistory?: Message[];
+  initialMeasureSystem?: MeasureSystem;
+  initialServings?: number;
 }
 
 export function RecipeUploader({
   onRecipeProcessed,
   conversationHistory = [],
+  initialMeasureSystem,
+  initialServings,
 }: RecipeUploaderProps) {
   const [images, setImages] = useState<{ data: ImageData; preview: string }[]>([]);
   const [adjustments, setAdjustments] = useState('');
@@ -23,10 +34,25 @@ export function RecipeUploader({
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check for token on mount
+  // Load preferences on mount - use initial values if provided (for editing), otherwise load from storage
   useEffect(() => {
     setHasToken(!!getOAuthToken());
-  }, []);
+    setMeasureSystem(initialMeasureSystem ?? getMeasureSystem());
+    setServings(initialServings ?? getServings());
+  }, [initialMeasureSystem, initialServings]);
+
+  // Persist measure system changes to local storage
+  const handleMeasureSystemChange = (system: MeasureSystem) => {
+    setMeasureSystem(system);
+    saveMeasureSystem(system);
+  };
+
+  // Persist servings changes to local storage
+  const handleServingsChange = (value: number) => {
+    const newServings = Math.max(1, value);
+    setServings(newServings);
+    saveServings(newServings);
+  };
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -71,8 +97,9 @@ export function RecipeUploader({
   }, []);
 
   const handleSubmit = async () => {
-    if (images.length === 0) {
-      setError('Please add at least one recipe image');
+    // Allow either images or text instructions (or both)
+    if (images.length === 0 && !adjustments.trim()) {
+      setError('Please add recipe images or enter a recipe description');
       return;
     }
 
@@ -98,6 +125,7 @@ export function RecipeUploader({
           measureSystem,
           servings,
           oauthToken,
+          model: getModel(),
         }),
       });
 
@@ -117,7 +145,7 @@ export function RecipeUploader({
     }
   };
 
-  const canSubmit = images.length > 0 && !isProcessing;
+  const canSubmit = (images.length > 0 || adjustments.trim()) && !isProcessing;
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -168,9 +196,11 @@ export function RecipeUploader({
               className={`w-10 h-10 mx-auto mb-3 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`}
             />
             <p className={`font-medium ${isProcessing ? 'text-gray-500' : 'text-gray-700'}`}>
-              Upload recipe screenshots
+              Upload recipe screenshots (optional)
             </p>
-            <p className="text-sm text-gray-500 mt-1">Tap to add images from your device</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Or enter text below to create a recipe without images
+            </p>
           </label>
         </div>
 
@@ -228,7 +258,7 @@ export function RecipeUploader({
             <div className="flex rounded-lg border border-gray-200 overflow-hidden">
               <button
                 type="button"
-                onClick={() => setMeasureSystem('metric')}
+                onClick={() => handleMeasureSystemChange('metric')}
                 disabled={isProcessing}
                 className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
                   measureSystem === 'metric'
@@ -240,7 +270,7 @@ export function RecipeUploader({
               </button>
               <button
                 type="button"
-                onClick={() => setMeasureSystem('american')}
+                onClick={() => handleMeasureSystemChange('american')}
                 disabled={isProcessing}
                 className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
                   measureSystem === 'american'
@@ -266,7 +296,7 @@ export function RecipeUploader({
                 min={1}
                 max={100}
                 value={servings}
-                onChange={(e) => setServings(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => handleServingsChange(parseInt(e.target.value) || 1)}
                 disabled={isProcessing}
                 className="w-full py-2 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
               />
@@ -274,19 +304,30 @@ export function RecipeUploader({
           </div>
         </div>
 
-        {/* Adjustments Input */}
+        {/* Recipe Text / Adjustments Input */}
         <div>
           <label htmlFor="adjustments" className="block text-sm font-medium text-gray-700 mb-2">
-            Recipe Adjustments (optional)
+            {images.length > 0 ? 'Recipe Adjustments (optional)' : 'Recipe Text or Instructions'}
           </label>
           <textarea
             id="adjustments"
             value={adjustments}
             onChange={(e) => setAdjustments(e.target.value)}
             disabled={isProcessing}
-            placeholder="E.g., 'Make it vegetarian', 'Less spicy'..."
-            className="w-full h-20 p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+            placeholder={
+              images.length > 0
+                ? "E.g., 'Make it vegetarian', 'Less spicy'..."
+                : "Enter your recipe, ingredients list, or describe what you'd like to cook..."
+            }
+            className={`w-full p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 ${
+              images.length > 0 ? 'h-20' : 'h-32'
+            }`}
           />
+          {images.length === 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Paste a recipe, list ingredients, or describe what you want to make
+            </p>
+          )}
         </div>
 
         {/* Error Message */}

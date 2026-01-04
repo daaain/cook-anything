@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Info, CheckCircle, AlertCircle, Eye, EyeOff, Copy, Check } from 'lucide-react';
-import { getOAuthToken, setOAuthToken, clearOAuthToken } from '@/lib/storage';
+import { Info, CheckCircle, AlertCircle, Eye, EyeOff, Copy, Check, Cpu } from 'lucide-react';
+import { getOAuthToken, setOAuthToken, clearOAuthToken, getModel, setModel } from '@/lib/storage';
+import { ModelId } from '@/lib/types';
 
 export default function SettingsPage() {
   const [token, setToken] = useState('');
   const [savedToken, setSavedToken] = useState<string | null>(null);
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<ModelId>('opus');
 
   useEffect(() => {
     const stored = getOAuthToken();
@@ -16,7 +18,13 @@ export default function SettingsPage() {
     if (stored) {
       setToken(stored);
     }
+    setSelectedModel(getModel());
   }, []);
+
+  const handleModelChange = (model: ModelId) => {
+    setSelectedModel(model);
+    setModel(model);
+  };
 
   const handleSave = () => {
     if (token.trim()) {
@@ -37,9 +45,7 @@ export default function SettingsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const maskedToken = savedToken
-    ? `${savedToken.slice(0, 8)}...${savedToken.slice(-4)}`
-    : null;
+  const maskedToken = savedToken ? `${savedToken.slice(0, 8)}...${savedToken.slice(-4)}` : null;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
@@ -47,6 +53,23 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-amber-900 mb-2">Settings</h1>
         <p className="text-amber-700">Application configuration</p>
+      </div>
+
+      {/* Info Card */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex gap-3">
+          <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-blue-800 mb-1">How It Works</h3>
+            <p className="text-sm text-blue-700">
+              Recipe Flow uses the Claude Code CLI for AI processing. Your OAuth token is stored
+              locally in your browser and sent with each request.
+            </p>
+            <p className="text-sm text-blue-700 mt-2">
+              The token is generated from your Claude Pro/Max subscription via the CLI.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Authentication Status */}
@@ -57,7 +80,8 @@ export default function SettingsPage() {
             <div className="flex-1">
               <h3 className="font-medium text-green-800 mb-1">Authenticated</h3>
               <p className="text-sm text-green-700">
-                OAuth token is configured: <code className="bg-green-100 px-1 rounded">{maskedToken}</code>
+                OAuth token is configured:{' '}
+                <code className="bg-green-100 px-1 rounded">{maskedToken}</code>
               </p>
             </div>
           </div>
@@ -142,20 +166,81 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Info Card */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="flex gap-3">
-          <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-medium text-blue-800 mb-1">How It Works</h3>
-            <p className="text-sm text-blue-700">
-              Recipe Flow uses the Claude Code CLI for AI processing. Your OAuth token is stored
-              locally in your browser and sent with each request.
-            </p>
-            <p className="text-sm text-blue-700 mt-2">
-              The token is generated from your Claude Pro/Max subscription via the CLI.
-            </p>
+      {/* Model Selection */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Cpu className="w-4 h-4 text-gray-600" />
+            <h3 className="font-medium text-gray-800">AI Model</h3>
           </div>
+          <p className="text-sm text-gray-600 mb-3">
+            Choose which Claude model to use for recipe analysis.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <label
+            className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+              selectedModel === 'haiku'
+                ? 'border-amber-500 bg-amber-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="model"
+              value="haiku"
+              checked={selectedModel === 'haiku'}
+              onChange={() => handleModelChange('haiku')}
+              className="mt-1 accent-amber-500"
+            />
+            <div>
+              <div className="font-medium text-gray-800">Haiku</div>
+              <div className="text-sm text-gray-600">Fastest and most cost-effective</div>
+            </div>
+          </label>
+
+          <label
+            className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+              selectedModel === 'sonnet'
+                ? 'border-amber-500 bg-amber-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="model"
+              value="sonnet"
+              checked={selectedModel === 'sonnet'}
+              onChange={() => handleModelChange('sonnet')}
+              className="mt-1 accent-amber-500"
+            />
+            <div>
+              <div className="font-medium text-gray-800">Sonnet</div>
+              <div className="text-sm text-gray-600">Balanced performance (recommended)</div>
+            </div>
+          </label>
+
+          <label
+            className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+              selectedModel === 'opus'
+                ? 'border-amber-500 bg-amber-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="model"
+              value="opus"
+              checked={selectedModel === 'opus'}
+              onChange={() => handleModelChange('opus')}
+              className="mt-1 accent-amber-500"
+            />
+            <div>
+              <div className="font-medium text-gray-800">Opus</div>
+              <div className="text-sm text-gray-600">Most capable, best for complex recipes</div>
+            </div>
+          </label>
         </div>
       </div>
     </div>

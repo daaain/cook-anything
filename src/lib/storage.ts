@@ -1,7 +1,14 @@
-import { Recipe } from './types';
+import { Recipe, ModelId, MeasureSystem } from './types';
 
 const RECIPES_STORAGE_KEY = 'recipe-flow-recipes';
 const OAUTH_TOKEN_KEY = 'recipe-flow-oauth-token';
+const MODEL_KEY = 'recipe-flow-model';
+const MEASURE_SYSTEM_KEY = 'recipe-flow-measure-system';
+const SERVINGS_KEY = 'recipe-flow-servings';
+
+const DEFAULT_MODEL: ModelId = 'opus';
+const DEFAULT_MEASURE_SYSTEM: MeasureSystem = 'metric';
+const DEFAULT_SERVINGS = 4;
 
 // OAuth token management
 export function getOAuthToken(): string | null {
@@ -27,6 +34,66 @@ export function clearOAuthToken(): void {
 
 export function hasOAuthToken(): boolean {
   return !!getOAuthToken();
+}
+
+// Model selection management
+export function getModel(): ModelId {
+  if (typeof window === 'undefined') {
+    return DEFAULT_MODEL;
+  }
+  const stored = localStorage.getItem(MODEL_KEY);
+  if (stored === 'haiku' || stored === 'sonnet' || stored === 'opus') {
+    return stored;
+  }
+  return DEFAULT_MODEL;
+}
+
+export function setModel(model: ModelId): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(MODEL_KEY, model);
+}
+
+// Measure system preference management
+export function getMeasureSystem(): MeasureSystem {
+  if (typeof window === 'undefined') {
+    return DEFAULT_MEASURE_SYSTEM;
+  }
+  const stored = localStorage.getItem(MEASURE_SYSTEM_KEY);
+  if (stored === 'metric' || stored === 'american') {
+    return stored;
+  }
+  return DEFAULT_MEASURE_SYSTEM;
+}
+
+export function setMeasureSystem(system: MeasureSystem): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(MEASURE_SYSTEM_KEY, system);
+}
+
+// Servings preference management
+export function getServings(): number {
+  if (typeof window === 'undefined') {
+    return DEFAULT_SERVINGS;
+  }
+  const stored = localStorage.getItem(SERVINGS_KEY);
+  if (stored) {
+    const parsed = parseInt(stored, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 100) {
+      return parsed;
+    }
+  }
+  return DEFAULT_SERVINGS;
+}
+
+export function setServings(servings: number): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(SERVINGS_KEY, String(servings));
 }
 
 export function generateSlug(title: string): string {
