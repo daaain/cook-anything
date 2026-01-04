@@ -86,11 +86,14 @@ function createProvider(oauthToken?: string) {
         lastStderr += data;
         console.error('[Claude CLI stderr]:', data);
       },
-      ...(oauthToken && {
-        env: {
+      env: {
+        // Set config dir to /tmp for serverless environments (Vercel)
+        CLAUDE_CONFIG_DIR: '/tmp/.claude',
+        HOME: '/tmp',
+        ...(oauthToken && {
           CLAUDE_CODE_OAUTH_TOKEN: oauthToken,
-        },
-      }),
+        }),
+      },
     },
   });
 }
