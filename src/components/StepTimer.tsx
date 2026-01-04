@@ -17,11 +17,11 @@ function speakCompletion(ingredients: string[], stepNumber: number) {
   if (ingredients.length === 0) {
     message = `Step ${stepNumber} is complete`;
   } else if (ingredients.length === 1) {
-    message = `The ${ingredients[0]} are done`;
+    message = `${ingredients[0]} ready on step ${stepNumber}`;
   } else {
     const last = ingredients[ingredients.length - 1];
     const rest = ingredients.slice(0, -1).join(', ');
-    message = `The ${rest} and ${last} are done`;
+    message = `${rest} and ${last} ready on step ${stepNumber}`;
   }
 
   const utterance = new SpeechSynthesisUtterance(message);

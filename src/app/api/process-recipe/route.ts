@@ -130,7 +130,7 @@ INSTRUCTIONS:
 8. Estimate timer minutes for steps that need timing (cooking, marinating, resting). Use 0 for steps without timers.
 9. Make instructions clear and actionable
 10. Optimise for parallel prep where logical
-11. Step numbers should be sequential across all groups`;
+11. Step numbers should be sequential across all groups and start from 1`;
 }
 
 // Create Claude Code provider, optionally with OAuth token

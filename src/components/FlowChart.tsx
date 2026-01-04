@@ -43,8 +43,8 @@ export function FlowChart({ recipe }: FlowChartProps) {
 
       {/* Flow Steps */}
       <div className="space-y-4">
-        {recipe.flowGroups.map((group) => (
-          <div key={`group-${group.steps[0]?.stepNumber ?? 0}`}>
+        {recipe.flowGroups.map((group, index) => (
+          <div key={`group-${group.steps[0]?.stepNumber ?? index}`}>
             {group.parallel ? (
               <ParallelSteps
                 group={group}
