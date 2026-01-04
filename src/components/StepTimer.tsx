@@ -38,14 +38,17 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
     setRemainingSeconds(totalSeconds);
   }, [totalSeconds]);
 
-  const adjustTime = useCallback((delta: number) => {
-    if (isRunning) return;
+  const adjustTime = useCallback(
+    (delta: number) => {
+      if (isRunning) return;
 
-    const newTotal = Math.max(60, totalSeconds + delta * 60);
-    setTotalSeconds(newTotal);
-    setRemainingSeconds(newTotal);
-    setIsComplete(false);
-  }, [isRunning, totalSeconds]);
+      const newTotal = Math.max(60, totalSeconds + delta * 60);
+      setTotalSeconds(newTotal);
+      setRemainingSeconds(newTotal);
+      setIsComplete(false);
+    },
+    [isRunning, totalSeconds],
+  );
 
   useEffect(() => {
     if (isRunning && remainingSeconds > 0) {
@@ -74,9 +77,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
 
   return (
     <div
-      className={`rounded-lg p-3 transition-colors ${
-        isComplete ? 'bg-green-100' : 'bg-gray-50'
-      }`}
+      className={`rounded-lg p-3 transition-colors ${isComplete ? 'bg-green-100' : 'bg-gray-50'}`}
     >
       <div className="flex items-center gap-3">
         {/* Timer Display */}
@@ -107,10 +108,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
           </div>
 
           {!isRunning && !isComplete && (
-            <button
-              onClick={() => adjustTime(1)}
-              className="p-1 text-gray-400 hover:text-gray-600"
-            >
+            <button onClick={() => adjustTime(1)} className="p-1 text-gray-400 hover:text-gray-600">
               <Plus className="w-4 h-4" />
             </button>
           )}
@@ -162,9 +160,7 @@ export function StepTimer({ initialMinutes, stepNumber }: StepTimerProps) {
         </div>
       </div>
 
-      <div className="text-xs text-gray-500 mt-1">
-        Step {stepNumber} timer
-      </div>
+      <div className="text-xs text-gray-500 mt-1">Step {stepNumber} timer</div>
     </div>
   );
 }

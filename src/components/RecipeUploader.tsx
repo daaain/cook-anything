@@ -9,7 +9,10 @@ interface RecipeUploaderProps {
   conversationHistory?: Message[];
 }
 
-export function RecipeUploader({ onRecipeProcessed, conversationHistory = [] }: RecipeUploaderProps) {
+export function RecipeUploader({
+  onRecipeProcessed,
+  conversationHistory = [],
+}: RecipeUploaderProps) {
   const [images, setImages] = useState<{ data: ImageData; preview: string }[]>([]);
   const [adjustments, setAdjustments] = useState('');
   const [measureSystem, setMeasureSystem] = useState<MeasureSystem>('metric');
@@ -130,13 +133,13 @@ export function RecipeUploader({ onRecipeProcessed, conversationHistory = [] }: 
               disabled={isProcessing}
               className="hidden"
             />
-            <Upload className={`w-10 h-10 mx-auto mb-3 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`} />
+            <Upload
+              className={`w-10 h-10 mx-auto mb-3 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`}
+            />
             <p className={`font-medium ${isProcessing ? 'text-gray-500' : 'text-gray-700'}`}>
               Upload recipe screenshots
             </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Tap to add images from your device
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Tap to add images from your device</p>
           </label>
         </div>
 
@@ -176,8 +179,12 @@ export function RecipeUploader({ onRecipeProcessed, conversationHistory = [] }: 
                 disabled={isProcessing}
                 className="hidden"
               />
-              <ImagePlus className={`w-6 h-6 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`} />
-              <span className={`text-xs mt-1 ${isProcessing ? 'text-gray-400' : 'text-gray-500'}`}>Add more</span>
+              <ImagePlus
+                className={`w-6 h-6 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`}
+              />
+              <span className={`text-xs mt-1 ${isProcessing ? 'text-gray-400' : 'text-gray-500'}`}>
+                Add more
+              </span>
             </label>
           </div>
         )}
@@ -186,9 +193,7 @@ export function RecipeUploader({ onRecipeProcessed, conversationHistory = [] }: 
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Measure System Toggle */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Measurements
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Measurements</label>
             <div className="flex rounded-lg border border-gray-200 overflow-hidden">
               <button
                 type="button"
@@ -265,9 +270,7 @@ export function RecipeUploader({ onRecipeProcessed, conversationHistory = [] }: 
           onClick={handleSubmit}
           disabled={!canSubmit}
           className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${
-            canSubmit
-              ? 'bg-amber-500 hover:bg-amber-600'
-              : 'bg-gray-300 cursor-not-allowed'
+            canSubmit ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-300 cursor-not-allowed'
           }`}
         >
           {isProcessing ? (

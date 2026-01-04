@@ -13,9 +13,7 @@ export function ParallelSteps({ group, showConnector = true }: ParallelStepsProp
   return (
     <div className="relative">
       {/* Connector Line */}
-      {showConnector && (
-        <div className="absolute left-6 -top-3 w-0.5 h-3 bg-gray-300" />
-      )}
+      {showConnector && <div className="absolute left-6 -top-3 w-0.5 h-3 bg-gray-300" />}
 
       <div className="border-2 border-dashed border-amber-300 rounded-xl p-4 bg-amber-50/30">
         {/* Parallel Label */}

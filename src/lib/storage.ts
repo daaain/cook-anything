@@ -45,7 +45,7 @@ export function saveRecipe(recipe: Recipe): Recipe {
   };
 
   // Check if recipe with same slug exists
-  const existingIndex = recipes.findIndex(r => r.slug === slug);
+  const existingIndex = recipes.findIndex((r) => r.slug === slug);
 
   if (existingIndex >= 0) {
     // Overwrite existing
@@ -62,18 +62,18 @@ export function saveRecipe(recipe: Recipe): Recipe {
 
 export function getRecipeBySlug(slug: string): Recipe | null {
   const recipes = getSavedRecipes();
-  return recipes.find(r => r.slug === slug) || null;
+  return recipes.find((r) => r.slug === slug) || null;
 }
 
 export function deleteRecipe(slug: string): void {
   const recipes = getSavedRecipes();
-  const filtered = recipes.filter(r => r.slug !== slug);
+  const filtered = recipes.filter((r) => r.slug !== slug);
   localStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(filtered));
 }
 
 export function updateRecipe(slug: string, updates: Partial<Recipe>): Recipe | null {
   const recipes = getSavedRecipes();
-  const index = recipes.findIndex(r => r.slug === slug);
+  const index = recipes.findIndex((r) => r.slug === slug);
 
   if (index < 0) {
     return null;

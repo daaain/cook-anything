@@ -10,23 +10,40 @@ interface RecipeExportProps {
 export function RecipeExport({ recipe }: RecipeExportProps) {
   const generateHTML = () => {
     const typeStyles = {
-      prep: { bg: '#eff6ff', border: '#bfdbfe', badge: '#dbeafe', text: '#1d4ed8' },
-      cook: { bg: '#fff7ed', border: '#fed7aa', badge: '#ffedd5', text: '#c2410c' },
-      rest: { bg: '#faf5ff', border: '#e9d5ff', badge: '#f3e8ff', text: '#7c3aed' },
+      prep: {
+        bg: '#eff6ff',
+        border: '#bfdbfe',
+        badge: '#dbeafe',
+        text: '#1d4ed8',
+      },
+      cook: {
+        bg: '#fff7ed',
+        border: '#fed7aa',
+        badge: '#ffedd5',
+        text: '#c2410c',
+      },
+      rest: {
+        bg: '#faf5ff',
+        border: '#e9d5ff',
+        badge: '#f3e8ff',
+        text: '#7c3aed',
+      },
     };
 
-    const stepsHTML = recipe.flowGroups.map((group) => {
-      if (group.parallel) {
-        return `
+    const stepsHTML = recipe.flowGroups
+      .map((group) => {
+        if (group.parallel) {
+          return `
           <div style="border: 2px dashed #fcd34d; border-radius: 12px; padding: 16px; background: rgba(254, 243, 199, 0.3); margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 8px; color: #b45309; margin-bottom: 16px;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
               <span style="font-size: 14px; font-weight: 500;">These can be done in parallel</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
-              ${group.steps.map(step => {
-                const style = typeStyles[step.type];
-                return `
+              ${group.steps
+                .map((step) => {
+                  const style = typeStyles[step.type];
+                  return `
                   <div style="background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; padding: 16px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                       <div style="width: 32px; height: 32px; border-radius: 50%; background: ${style.badge}; color: ${style.text}; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">
@@ -38,25 +55,35 @@ export function RecipeExport({ recipe }: RecipeExportProps) {
                       ${step.timerMinutes > 0 ? `<span style="font-size: 12px; color: #6b7280;">${step.timerMinutes} min</span>` : ''}
                     </div>
                     <p style="color: #374151; line-height: 1.6; margin: 0;">${step.instruction}</p>
-                    ${step.ingredients.length > 0 ? `
+                    ${
+                      step.ingredients.length > 0
+                        ? `
                       <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
-                        ${step.ingredients.map(ing => `
+                        ${step.ingredients
+                          .map(
+                            (ing) => `
                           <span style="background: rgba(255,255,255,0.7); border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 12px; font-size: 12px; color: #4b5563;">
                             ${ing}
                           </span>
-                        `).join('')}
+                        `,
+                          )
+                          .join('')}
                       </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                   </div>
                 `;
-              }).join('')}
+                })
+                .join('')}
             </div>
           </div>
         `;
-      } else {
-        return group.steps.map(step => {
-          const style = typeStyles[step.type];
-          return `
+        } else {
+          return group.steps
+            .map((step) => {
+              const style = typeStyles[step.type];
+              return `
             <div style="background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                 <div style="width: 32px; height: 32px; border-radius: 50%; background: ${style.badge}; color: ${style.text}; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">
@@ -68,20 +95,30 @@ export function RecipeExport({ recipe }: RecipeExportProps) {
                 ${step.timerMinutes > 0 ? `<span style="font-size: 12px; color: #6b7280;">${step.timerMinutes} min</span>` : ''}
               </div>
               <p style="color: #374151; line-height: 1.6; margin: 0;">${step.instruction}</p>
-              ${step.ingredients.length > 0 ? `
+              ${
+                step.ingredients.length > 0
+                  ? `
                 <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
-                  ${step.ingredients.map(ing => `
+                  ${step.ingredients
+                    .map(
+                      (ing) => `
                     <span style="background: rgba(255,255,255,0.7); border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 12px; font-size: 12px; color: #4b5563;">
                       ${ing}
                     </span>
-                  `).join('')}
+                  `,
+                    )
+                    .join('')}
                 </div>
-              ` : ''}
+              `
+                  : ''
+              }
             </div>
           `;
-        }).join('');
-      }
-    }).join('');
+            })
+            .join('');
+        }
+      })
+      .join('');
 
     return `<!DOCTYPE html>
 <html lang="en">

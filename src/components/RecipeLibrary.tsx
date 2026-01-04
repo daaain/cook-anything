@@ -45,11 +45,7 @@ export function RecipeLibrary({ recipes, onSelect, onDelete }: RecipeLibraryProp
                       {recipe.servings}
                     </span>
                   )}
-                  {recipe.savedAt && (
-                    <span>
-                      {new Date(recipe.savedAt).toLocaleDateString()}
-                    </span>
-                  )}
+                  {recipe.savedAt && <span>{new Date(recipe.savedAt).toLocaleDateString()}</span>}
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-gray-400" />

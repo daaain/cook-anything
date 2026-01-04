@@ -18,8 +18,8 @@ export default function SettingsPage() {
           <div>
             <h3 className="font-medium text-green-800 mb-1">Server Authentication</h3>
             <p className="text-sm text-green-700">
-              This app uses the server&apos;s Claude CLI authentication.
-              No additional configuration is required.
+              This app uses the server&apos;s Claude CLI authentication. No additional configuration
+              is required.
             </p>
           </div>
         </div>
@@ -32,8 +32,8 @@ export default function SettingsPage() {
           <div>
             <h3 className="font-medium text-blue-800 mb-1">How It Works</h3>
             <p className="text-sm text-blue-700">
-              Recipe Flow uses the Claude Code CLI for AI processing.
-              The server authenticates with Claude on your behalf using the CLI&apos;s stored credentials.
+              Recipe Flow uses the Claude Code CLI for AI processing. The server authenticates with
+              Claude on your behalf using the CLI&apos;s stored credentials.
             </p>
             <p className="text-sm text-blue-700 mt-2">
               For developers: Run <code className="bg-blue-100 px-1 rounded">claude login</code> on
@@ -47,8 +47,8 @@ export default function SettingsPage() {
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-60">
         <h3 className="font-medium text-gray-600 mb-1">API Key Support</h3>
         <p className="text-sm text-gray-500">
-          Direct API key authentication coming soon. This will allow you to use your own
-          Anthropic API key instead of the CLI authentication.
+          Direct API key authentication coming soon. This will allow you to use your own Anthropic
+          API key instead of the CLI authentication.
         </p>
       </div>
     </div>

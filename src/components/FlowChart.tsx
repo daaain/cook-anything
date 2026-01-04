@@ -32,10 +32,7 @@ export function FlowChart({ recipe }: FlowChartProps) {
             ) : (
               group.steps.map((step, stepIndex) => (
                 <div key={step.stepNumber} className="mb-4">
-                  <FlowStep
-                    step={step}
-                    showConnector={groupIndex > 0 || stepIndex > 0}
-                  />
+                  <FlowStep step={step} showConnector={groupIndex > 0 || stepIndex > 0} />
                 </div>
               ))
             )}

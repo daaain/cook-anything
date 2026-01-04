@@ -75,7 +75,9 @@ function RecipePageContent() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Recipe not found</h2>
-          <p className="text-gray-600 mb-4">The recipe you&apos;re looking for doesn&apos;t exist.</p>
+          <p className="text-gray-600 mb-4">
+            The recipe you&apos;re looking for doesn&apos;t exist.
+          </p>
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-amber-600 font-medium hover:text-amber-700"
@@ -138,7 +140,8 @@ function RecipePageContent() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <h3 className="font-medium text-amber-800 mb-3">Edit Recipe</h3>
           <p className="text-sm text-amber-700 mb-4">
-            Add more images or describe changes you&apos;d like to make. Your changes will be applied to the current recipe.
+            Add more images or describe changes you&apos;d like to make. Your changes will be
+            applied to the current recipe.
           </p>
           <RecipeUploader
             onRecipeProcessed={handleRecipeUpdate}
@@ -155,14 +158,16 @@ function RecipePageContent() {
 
 export default function RecipePage() {
   return (
-    <Suspense fallback={
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+    <Suspense
+      fallback={
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <RecipePageContent />
     </Suspense>
   );

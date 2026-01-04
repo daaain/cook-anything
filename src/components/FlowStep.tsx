@@ -42,9 +42,7 @@ export function FlowStep({ step, showConnector = true }: FlowStepProps) {
   return (
     <div className="relative">
       {/* Connector Line */}
-      {showConnector && (
-        <div className="absolute left-6 -top-3 w-0.5 h-3 bg-gray-300" />
-      )}
+      {showConnector && <div className="absolute left-6 -top-3 w-0.5 h-3 bg-gray-300" />}
 
       <div className={`${config.bg} ${config.border} border rounded-xl overflow-hidden`}>
         {/* Header - Always visible, clickable */}
@@ -53,21 +51,23 @@ export function FlowStep({ step, showConnector = true }: FlowStepProps) {
           className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/50 transition-colors"
         >
           {/* Step Number */}
-          <div className={`w-8 h-8 rounded-full ${config.badge} flex items-center justify-center text-sm font-semibold`}>
+          <div
+            className={`w-8 h-8 rounded-full ${config.badge} flex items-center justify-center text-sm font-semibold`}
+          >
             {step.stepNumber}
           </div>
 
           {/* Type Badge & Icon */}
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${config.badge} text-xs font-medium`}>
+          <div
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-full ${config.badge} text-xs font-medium`}
+          >
             <Icon className="w-3.5 h-3.5" />
             {config.label}
           </div>
 
           {/* Brief instruction preview when collapsed */}
           {!isExpanded && (
-            <p className="flex-1 text-sm text-gray-600 truncate">
-              {step.instruction}
-            </p>
+            <p className="flex-1 text-sm text-gray-600 truncate">{step.instruction}</p>
           )}
 
           {/* Timer badge if applicable */}
@@ -87,9 +87,7 @@ export function FlowStep({ step, showConnector = true }: FlowStepProps) {
         {isExpanded && (
           <div className="px-4 pb-4 space-y-3">
             {/* Full Instruction */}
-            <p className="text-gray-700 leading-relaxed">
-              {step.instruction}
-            </p>
+            <p className="text-gray-700 leading-relaxed">{step.instruction}</p>
 
             {/* Ingredients */}
             {step.ingredients.length > 0 && (

@@ -20,18 +20,14 @@ export default function HomePage() {
     <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
       {/* Hero */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-amber-900 mb-2">
-          Recipe Flow
-        </h1>
+        <h1 className="text-3xl font-bold text-amber-900 mb-2">Recipe Flow</h1>
         <p className="text-amber-700">
           Transform recipe screenshots into interactive cooking flowcharts
         </p>
       </div>
 
       {/* Recipe Uploader */}
-      <RecipeUploader
-        onRecipeProcessed={handleRecipeProcessed}
-      />
+      <RecipeUploader onRecipeProcessed={handleRecipeProcessed} />
 
       {/* Quick Tips */}
       <div className="bg-white/50 rounded-xl p-4 border border-amber-200/50">
