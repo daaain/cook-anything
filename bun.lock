@@ -7,7 +7,7 @@
       "dependencies": {
         "@anthropic-ai/claude-code": "^2.0.76",
         "ai": "^6.0.6",
-        "ai-sdk-provider-claude-code": "^3.0.1",
+        "ai-sdk-provider-claude-code": "^3.1.0",
         "lucide-react": "^0.562.0",
         "next": "16.1.1",
         "react": "^19.2.3",
@@ -331,7 +331,7 @@
 
     "ai": ["ai@6.0.6", "", { "dependencies": { "@ai-sdk/gateway": "3.0.5", "@ai-sdk/provider": "3.0.1", "@ai-sdk/provider-utils": "4.0.2", "@opentelemetry/api": "1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-LM0eAMWVn3RTj+0X5O1m/8g+7QiTeWG5aN5FsDbdmCkAQHVg93XxLbljFOLzi0NMjuJgf7fKLKmWoPsrdMyqfw=="],
 
-    "ai-sdk-provider-claude-code": ["ai-sdk-provider-claude-code@3.0.1", "", { "dependencies": { "@ai-sdk/provider": "^3.0.0", "@ai-sdk/provider-utils": "^4.0.1", "@anthropic-ai/claude-agent-sdk": "^0.1.76" }, "peerDependencies": { "zod": "^3.24.1 || ^4.0.0" } }, "sha512-VlEJVp0JZdB4g6r17rKKj/eTcSy8tyrCnlgkTxnsqhP33rCaQDAbw+BpD38dn15lgojXnic3aLka87k/fz7+vw=="],
+    "ai-sdk-provider-claude-code": ["ai-sdk-provider-claude-code@3.1.0", "", { "dependencies": { "@ai-sdk/provider": "^3.0.0", "@ai-sdk/provider-utils": "^4.0.1", "@anthropic-ai/claude-agent-sdk": "^0.1.76" }, "peerDependencies": { "zod": "^3.24.1 || ^4.0.0" } }, "sha512-5LvG7HJMbMhTcQ09W3+P7mX3zVS8SOcKplQ7VwLBDNuSlPVd3bWOUxbrbgnpUaPh9QtnSBACZNm7qQ0tM7ue4Q=="],
 
     "ajv": ["ajv@6.12.6", "", { "dependencies": { "fast-deep-equal": "^3.1.1", "fast-json-stable-stringify": "^2.0.0", "json-schema-traverse": "^0.4.1", "uri-js": "^4.2.2" } }, "sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g=="],
 
