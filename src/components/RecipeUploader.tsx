@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { resizeImage } from '@/lib/image-utils';
 import {
   getMeasureSystem,
   getModel,
@@ -69,6 +70,9 @@ export function RecipeUploader({
     async (file: File): Promise<{ data: ImageData; preview: string } | null> => {
       if (!file.type.startsWith('image/')) return null;
 
+      // Resize large images to reduce payload size
+      const resizedBlob = await resizeImage(file);
+
       const base64 = await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -77,17 +81,17 @@ export function RecipeUploader({
           const base64Data = result.split(',')[1];
           resolve(base64Data);
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(resizedBlob);
       });
 
       const preview = await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(resizedBlob);
       });
 
       return {
-        data: { base64, mediaType: file.type },
+        data: { base64, mediaType: resizedBlob.type },
         preview,
       };
     },
