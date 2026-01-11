@@ -184,3 +184,111 @@ export function updateRecipe(slug: string, updates: Partial<Recipe>): Recipe | n
 
   return updated;
 }
+
+export type ImportAction = 'added' | 'updated' | 'skipped';
+
+export interface ImportResult {
+  added: Recipe[];
+  updated: Recipe[];
+  skipped: Recipe[];
+}
+
+/**
+ * Import a single recipe with timestamp-based reconciliation.
+ * - If no existing recipe with same slug: adds and returns 'added'
+ * - If existing recipe is older: updates and returns 'updated'
+ * - If existing recipe is newer or same: returns 'skipped'
+ *
+ * Preserves the original savedAt from the imported recipe.
+ */
+export function importRecipe(recipe: Recipe): ImportAction {
+  if (typeof window === 'undefined') {
+    return 'skipped';
+  }
+
+  const recipes = getSavedRecipes();
+  const slug = recipe.slug || generateSlug(recipe.title);
+
+  const importedRecipe: Recipe = {
+    ...recipe,
+    slug,
+    // Preserve original savedAt, or use epoch if missing (treat as very old)
+    savedAt: recipe.savedAt || new Date(0).toISOString(),
+  };
+
+  const existingIndex = recipes.findIndex((r) => r.slug === slug);
+
+  if (existingIndex < 0) {
+    // No existing recipe - add it
+    recipes.unshift(importedRecipe);
+    localStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes));
+    return 'added';
+  }
+
+  const existing = recipes[existingIndex];
+  const existingTime = existing.savedAt ? new Date(existing.savedAt).getTime() : 0;
+  const importedTime = importedRecipe.savedAt ? new Date(importedRecipe.savedAt).getTime() : 0;
+
+  if (importedTime > existingTime) {
+    // Imported recipe is newer - update
+    recipes[existingIndex] = importedRecipe;
+    localStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes));
+    return 'updated';
+  }
+
+  // Existing recipe is newer or same - skip
+  return 'skipped';
+}
+
+/**
+ * Preview what would happen if recipes were imported.
+ * Does not modify storage.
+ */
+export function previewImport(recipesToImport: Recipe[]): ImportResult {
+  const existingRecipes = getSavedRecipes();
+  const result: ImportResult = {
+    added: [],
+    updated: [],
+    skipped: [],
+  };
+
+  for (const recipe of recipesToImport) {
+    const slug = recipe.slug || generateSlug(recipe.title);
+    const existing = existingRecipes.find((r) => r.slug === slug);
+
+    if (!existing) {
+      result.added.push(recipe);
+      continue;
+    }
+
+    const existingTime = existing.savedAt ? new Date(existing.savedAt).getTime() : 0;
+    const importedTime = recipe.savedAt ? new Date(recipe.savedAt).getTime() : 0;
+
+    if (importedTime > existingTime) {
+      result.updated.push(recipe);
+    } else {
+      result.skipped.push(recipe);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Import multiple recipes with reconciliation.
+ * Returns a summary of what was imported.
+ */
+export function importRecipes(recipesToImport: Recipe[]): ImportResult {
+  const result: ImportResult = {
+    added: [],
+    updated: [],
+    skipped: [],
+  };
+
+  for (const recipe of recipesToImport) {
+    const action = importRecipe(recipe);
+    result[action].push(recipe);
+  }
+
+  return result;
+}

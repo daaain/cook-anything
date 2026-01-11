@@ -36,3 +36,36 @@ bun run lint       # Biome + ESLint
 bun run lint:fix   # Auto-fix linting issues
 bun run format     # Format and organise imports (Biome)
 ```
+
+## Testing
+
+Uses Bun's built-in test runner (`bun:test`) with Jest-like API.
+
+```bash
+bun test           # Run all tests
+bun test --watch   # Run tests in watch mode
+```
+
+### Test Setup
+
+- **Config**: `bunfig.toml` preloads `src/test-setup.ts`
+- **Setup file**: `src/test-setup.ts` provides DOM/canvas polyfills via JSDOM and node-canvas
+- **Pattern**: Tests are `*.test.ts` files alongside source files in `src/`
+
+### Writing Tests
+
+```typescript
+import { describe, it, expect } from 'bun:test';
+
+describe('myFunction', () => {
+  it('should do something', () => {
+    expect(result).toBe(expected);
+  });
+});
+```
+
+Key testing libraries available:
+
+- `@testing-library/jest-dom` for extended matchers
+- `jsdom` for DOM environment
+- `canvas` for image operations

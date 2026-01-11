@@ -3,13 +3,15 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ExportAllButton } from '@/components/ExportAllButton';
+import { RecipeImportButton } from '@/components/RecipeImportButton';
 import { RecipeLibrary } from '@/components/RecipeLibrary';
 import { useRecipes } from '@/hooks/useRecipes';
 import type { Recipe } from '@/lib/types';
 
 export default function LibraryPage() {
   const router = useRouter();
-  const { recipes, isLoaded, remove } = useRecipes();
+  const { recipes, isLoaded, remove, refresh } = useRecipes();
 
   const handleSelectRecipe = (recipe: Recipe) => {
     router.push(`/recipe?slug=${recipe.slug}`);
@@ -38,13 +40,17 @@ export default function LibraryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-amber-900">Recipe Library</h1>
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          New Recipe
-        </Link>
+        <div className="flex items-center gap-2">
+          <RecipeImportButton onImportComplete={refresh} />
+          {recipes.length > 0 && <ExportAllButton recipes={recipes} />}
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            New Recipe
+          </Link>
+        </div>
       </div>
 
       {/* Recipe List */}
