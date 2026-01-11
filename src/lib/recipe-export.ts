@@ -1,6 +1,18 @@
 import type { Message, MessageContent, Recipe } from './types';
 
 /**
+ * Escape HTML special characters to prevent XSS attacks.
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Strip base64 image data from conversation history to reduce export size.
  * Replaces image content with a placeholder.
  */
@@ -84,14 +96,14 @@ function generateStepsHtml(recipe: Recipe): string {
                   <div style="background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; padding: 16px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                       <div style="width: 32px; height: 32px; border-radius: 50%; background: ${style.badge}; color: ${style.text}; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">
-                        ${step.stepNumber}
+                        ${escapeHtml(String(step.stepNumber))}
                       </div>
                       <span style="background: ${style.badge}; color: ${style.text}; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; text-transform: capitalize;">
-                        ${step.type}
+                        ${escapeHtml(step.type)}
                       </span>
-                      ${step.timerMinutes > 0 ? `<span style="font-size: 12px; color: #6b7280;">${step.timerMinutes} min</span>` : ''}
+                      ${step.timerMinutes > 0 ? `<span style="font-size: 12px; color: #6b7280;">${escapeHtml(String(step.timerMinutes))} min</span>` : ''}
                     </div>
-                    <p style="color: #374151; line-height: 1.6; margin: 0;">${step.instruction}</p>
+                    <p style="color: #374151; line-height: 1.6; margin: 0;">${escapeHtml(step.instruction)}</p>
                     ${
                       step.ingredients.length > 0
                         ? `
@@ -100,7 +112,7 @@ function generateStepsHtml(recipe: Recipe): string {
                           .map(
                             (ing) => `
                           <span style="background: rgba(255,255,255,0.7); border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 12px; font-size: 12px; color: #4b5563;">
-                            ${ing}
+                            ${escapeHtml(ing)}
                           </span>
                         `,
                           )
@@ -125,14 +137,14 @@ function generateStepsHtml(recipe: Recipe): string {
             <div style="background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                 <div style="width: 32px; height: 32px; border-radius: 50%; background: ${style.badge}; color: ${style.text}; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px;">
-                  ${step.stepNumber}
+                  ${escapeHtml(String(step.stepNumber))}
                 </div>
                 <span style="background: ${style.badge}; color: ${style.text}; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; text-transform: capitalize;">
-                  ${step.type}
+                  ${escapeHtml(step.type)}
                 </span>
-                ${step.timerMinutes > 0 ? `<span style="font-size: 12px; color: #6b7280;">${step.timerMinutes} min</span>` : ''}
+                ${step.timerMinutes > 0 ? `<span style="font-size: 12px; color: #6b7280;">${escapeHtml(String(step.timerMinutes))} min</span>` : ''}
               </div>
-              <p style="color: #374151; line-height: 1.6; margin: 0;">${step.instruction}</p>
+              <p style="color: #374151; line-height: 1.6; margin: 0;">${escapeHtml(step.instruction)}</p>
               ${
                 step.ingredients.length > 0
                   ? `
@@ -141,7 +153,7 @@ function generateStepsHtml(recipe: Recipe): string {
                     .map(
                       (ing) => `
                     <span style="background: rgba(255,255,255,0.7); border: 1px solid #e5e7eb; padding: 4px 8px; border-radius: 12px; font-size: 12px; color: #4b5563;">
-                      ${ing}
+                      ${escapeHtml(ing)}
                     </span>
                   `,
                     )
@@ -171,7 +183,7 @@ export function generateRecipeHtml(recipe: Recipe): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${recipe.title} - Recipe Flow</title>
+  <title>${escapeHtml(recipe.title)} - Recipe Flow</title>
   <script type="application/json" id="recipe-data">
 ${recipeJson}
   </script>
@@ -192,8 +204,8 @@ ${recipeJson}
 <body>
   <div class="container">
     <div class="card">
-      <h1>${recipe.title}</h1>
-      ${recipe.servings ? `<div class="servings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>${recipe.servings}</div>` : ''}
+      <h1>${escapeHtml(recipe.title)}</h1>
+      ${recipe.servings ? `<div class="servings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>${escapeHtml(String(recipe.servings))}</div>` : ''}
       ${stepsHTML}
     </div>
   </div>
