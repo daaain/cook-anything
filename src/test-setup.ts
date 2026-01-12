@@ -171,3 +171,4 @@ global.File = window.File;
 global.Blob = window.Blob;
 global.FileReader = window.FileReader;
 global.URL = window.URL;
+global.localStorage = window.localStorage;
