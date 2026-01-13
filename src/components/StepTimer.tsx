@@ -10,17 +10,30 @@ interface StepTimerProps {
   isMuted?: boolean;
 }
 
+// Strip emojis from text for cleaner TTS output
+function stripEmojis(text: string): string {
+  return text
+    .replace(
+      /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}]/gu,
+      '',
+    )
+    .trim();
+}
+
 function speakCompletion(ingredients: string[], stepNumber: number) {
   if (!('speechSynthesis' in window)) return;
 
+  // Strip emojis from ingredients for cleaner speech
+  const cleanIngredients = ingredients.map(stripEmojis).filter((i) => i.length > 0);
+
   let message: string;
-  if (ingredients.length === 0) {
+  if (cleanIngredients.length === 0) {
     message = `Step ${stepNumber} is complete`;
-  } else if (ingredients.length === 1) {
-    message = `${ingredients[0]} ready on step ${stepNumber}`;
+  } else if (cleanIngredients.length === 1) {
+    message = `${cleanIngredients[0]} ready on step ${stepNumber}`;
   } else {
-    const last = ingredients[ingredients.length - 1];
-    const rest = ingredients.slice(0, -1).join(', ');
+    const last = cleanIngredients[cleanIngredients.length - 1];
+    const rest = cleanIngredients.slice(0, -1).join(', ');
     message = `${rest} and ${last} ready on step ${stepNumber}`;
   }
 
@@ -83,7 +96,7 @@ export function StepTimer({
     (delta: number) => {
       if (isRunning) return;
 
-      const newTotal = Math.max(60, totalSeconds + delta * 60);
+      const newTotal = Math.max(30, totalSeconds + delta * 30);
       setTotalSeconds(newTotal);
       setRemainingSeconds(newTotal);
       setIsComplete(false);
@@ -133,7 +146,7 @@ export function StepTimer({
               type="button"
               onClick={() => adjustTime(-1)}
               className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-              disabled={totalSeconds <= 60}
+              disabled={totalSeconds <= 30}
             >
               <Minus className="w-4 h-4" />
             </button>
