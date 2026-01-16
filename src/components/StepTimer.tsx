@@ -69,6 +69,10 @@ export function StepTimer({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const shouldSpeakRef = useRef(false);
 
+  // Timestamp-based tracking to handle background tab throttling
+  const startTimestampRef = useRef<number | null>(null);
+  const elapsedBeforePauseRef = useRef(0);
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -79,10 +83,15 @@ export function StepTimer({
 
   const start = useCallback(() => {
     if (remainingSeconds <= 0) return;
+    startTimestampRef.current = Date.now();
     setIsRunning(true);
   }, [remainingSeconds]);
 
   const pause = useCallback(() => {
+    if (startTimestampRef.current !== null) {
+      elapsedBeforePauseRef.current += Math.floor((Date.now() - startTimestampRef.current) / 1000);
+      startTimestampRef.current = null;
+    }
     setIsRunning(false);
   }, []);
 
@@ -90,6 +99,8 @@ export function StepTimer({
     setIsRunning(false);
     setIsComplete(false);
     setRemainingSeconds(totalSeconds);
+    startTimestampRef.current = null;
+    elapsedBeforePauseRef.current = 0;
   }, [totalSeconds]);
 
   const adjustTime = useCallback(
@@ -105,18 +116,42 @@ export function StepTimer({
   );
 
   useEffect(() => {
-    if (isRunning && remainingSeconds > 0) {
-      intervalRef.current = setInterval(() => {
-        setRemainingSeconds((prev) => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            setIsComplete(true);
-            shouldSpeakRef.current = true;
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    const startTime = startTimestampRef.current;
+    if (isRunning && startTime !== null) {
+      const updateTimer = () => {
+        const elapsedSinceStart = Math.floor((Date.now() - startTime) / 1000);
+        const totalElapsed = elapsedBeforePauseRef.current + elapsedSinceStart;
+        const newRemaining = Math.max(0, totalSeconds - totalElapsed);
+
+        setRemainingSeconds(newRemaining);
+
+        if (newRemaining <= 0) {
+          setIsRunning(false);
+          setIsComplete(true);
+          shouldSpeakRef.current = true;
+          startTimestampRef.current = null;
+        }
+      };
+
+      // Update immediately in case we're catching up from background
+      updateTimer();
+
+      intervalRef.current = setInterval(updateTimer, 1000);
+
+      // Also update immediately when tab becomes visible again
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          updateTimer();
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
 
     return () => {
@@ -124,7 +159,7 @@ export function StepTimer({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, remainingSeconds]);
+  }, [isRunning, totalSeconds]);
 
   // Handle speech separately to avoid React Strict Mode double-invocation
   useEffect(() => {
