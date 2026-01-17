@@ -3,9 +3,11 @@
 A Next.js web app that turns recipe screenshots or ingredient photos into interactive cooking flowcharts using Claude AI.
 
 Demo 1 mobile with Claude – creating a recipe from photo of ingredients you have as a starting point:
+
 https://github.com/user-attachments/assets/fe878731-e794-4bbb-8d02-b8ae9f0c3539
 
 Demo 2 desktop with LM Studio – creating a recipe from a photo of a supermarket product:
+
 https://github.com/user-attachments/assets/874478b3-e8d8-4240-961c-efe70f835708
 
 ## Features
