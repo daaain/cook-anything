@@ -14,6 +14,8 @@ describe('recipe-export', () => {
     servings: 4,
     slug: 'test-recipe',
     savedAt: '2024-01-15T10:30:00.000Z',
+    ingredients: ['2 onions', 'oil'],
+    equipment: [],
     flowGroups: [
       {
         parallel: false,

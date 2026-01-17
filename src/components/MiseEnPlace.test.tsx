@@ -6,6 +6,8 @@ describe('MiseEnPlace', () => {
   const createTestRecipe = (overrides: Partial<Recipe> = {}): Recipe => ({
     title: 'Test Recipe',
     servings: 4,
+    ingredients: [],
+    equipment: [],
     flowGroups: [],
     ...overrides,
   });
@@ -278,6 +280,110 @@ describe('MiseEnPlace', () => {
       expect(equipment).toHaveLength(2);
       expect(equipment).toContain('🔪 Knife');
       expect(equipment).toContain('🍳 Pan');
+    });
+
+    it('should use top-level ingredients array when present', () => {
+      const recipe = createTestRecipe({
+        ingredients: ['🍝 200g spaghetti', '🧈 3 tbsp butter', '🧄 4 cloves garlic'],
+        flowGroups: [
+          {
+            parallel: false,
+            steps: [
+              {
+                stepNumber: 1,
+                type: 'prep',
+                instruction: 'Prep',
+                ingredients: ['🧄 4 cloves garlic'],
+                timerMinutes: 0,
+              },
+            ],
+          },
+        ],
+      });
+
+      const ingredients = extractUniqueItems(recipe, 'ingredients');
+
+      expect(ingredients).toEqual(['🍝 200g spaghetti', '🧈 3 tbsp butter', '🧄 4 cloves garlic']);
+    });
+
+    it('should use top-level equipment array when present', () => {
+      const recipe = createTestRecipe({
+        equipment: ['🍲 Large pot', '🍳 Large pan', '📏 Colander'],
+        flowGroups: [
+          {
+            parallel: false,
+            steps: [
+              {
+                stepNumber: 1,
+                type: 'cook',
+                instruction: 'Cook',
+                ingredients: [],
+                equipment: ['🍲 Large pot'],
+                timerMinutes: 10,
+              },
+            ],
+          },
+        ],
+      });
+
+      const equipment = extractUniqueItems(recipe, 'equipment');
+
+      expect(equipment).toEqual(['🍲 Large pot', '🍳 Large pan', '📏 Colander']);
+    });
+
+    it('should fall back to step extraction when top-level arrays are empty', () => {
+      const recipe = createTestRecipe({
+        ingredients: [],
+        equipment: [],
+        flowGroups: [
+          {
+            parallel: false,
+            steps: [
+              {
+                stepNumber: 1,
+                type: 'prep',
+                instruction: 'Chop',
+                ingredients: ['🧅 2 onions'],
+                equipment: ['🔪 Knife'],
+                timerMinutes: 0,
+              },
+            ],
+          },
+        ],
+      });
+
+      const ingredients = extractUniqueItems(recipe, 'ingredients');
+      const equipment = extractUniqueItems(recipe, 'equipment');
+
+      expect(ingredients).toEqual(['🧅 2 onions']);
+      expect(equipment).toEqual(['🔪 Knife']);
+    });
+
+    it('should fall back to step extraction when top-level arrays are undefined', () => {
+      const recipe: Recipe = {
+        title: 'Legacy Recipe',
+        flowGroups: [
+          {
+            parallel: false,
+            steps: [
+              {
+                stepNumber: 1,
+                type: 'prep',
+                instruction: 'Chop',
+                ingredients: ['🧅 2 onions'],
+                equipment: ['🔪 Knife'],
+                timerMinutes: 0,
+              },
+            ],
+          },
+        ],
+      };
+
+      const ingredients = extractUniqueItems(recipe, 'ingredients');
+      const equipment = extractUniqueItems(recipe, 'equipment');
+
+      expect(ingredients).toEqual(['🧅 2 onions']);
+      expect(equipment).toEqual(['🔪 Knife']);
     });
   });
 });

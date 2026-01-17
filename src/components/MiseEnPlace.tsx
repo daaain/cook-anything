@@ -9,10 +9,20 @@ interface MiseEnPlaceProps {
 }
 
 /**
- * Extract unique items from all steps, case-insensitive deduplication
- * preserving the original casing of the first occurrence.
+ * Extract unique items from recipe.
+ * Uses top-level arrays if present (new format), otherwise falls back to
+ * extracting from steps with case-insensitive deduplication (old format).
  */
 export function extractUniqueItems(recipe: Recipe, field: 'ingredients' | 'equipment'): string[] {
+  // Use top-level arrays if present (new format)
+  if (field === 'ingredients' && recipe.ingredients?.length) {
+    return recipe.ingredients;
+  }
+  if (field === 'equipment' && recipe.equipment?.length) {
+    return recipe.equipment;
+  }
+
+  // Fallback: extract from steps (old saved recipes without top-level arrays)
   const seen = new Map<string, string>();
 
   for (const group of recipe.flowGroups) {

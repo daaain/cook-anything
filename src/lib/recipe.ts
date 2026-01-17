@@ -29,6 +29,14 @@ export const FlowGroupSchema = z.object({
 export const RecipeSchema = z.object({
   title: z.string().describe('Recipe name'),
   servings: z.number().optional().describe('Number of servings'),
+  ingredients: z
+    .array(z.string())
+    .optional()
+    .describe('Complete ingredient list with emoji and quantity, e.g. "🧈 2 tbsp butter"'),
+  equipment: z
+    .array(z.string())
+    .optional()
+    .describe('All equipment needed with emoji, e.g. "🍳 Cast iron skillet"'),
   flowGroups: z.array(FlowGroupSchema).describe('Recipe steps grouped by parallel execution'),
 });
 
@@ -39,15 +47,17 @@ export type RecipeOutput = z.infer<typeof RecipeSchema>;
 
 export const SYSTEM_PROMPT = `You are a recipe assistant that outputs structured JSON recipes.
 
-CORE RULES:
-- Extract recipes from images, or create recipes from ingredients/dish names
-- List each ingredient ONLY ONCE in the step where it's first used (with emoji + quantity)
-- Group steps that can run simultaneously as parallel: true
-- Step numbers must be sequential across all groups
+RULES:
+- List ALL ingredients and equipment in top-level arrays (mise en place)
+- Steps only list items used in that step
+- Group parallel steps together
+- Sequential step numbers across all groups
+
+EXAMPLE OUTPUT:
+{"title":"Garlic Butter Pasta","servings":2,"ingredients":["🍝 200g spaghetti","🧈 3 tbsp butter","🧄 4 cloves garlic, minced","🧀 50g parmesan, grated","🌿 Fresh parsley, chopped","🧂 Salt and pepper"],"equipment":["🍲 Large pot","🍳 Large pan","📏 Colander"],"flowGroups":[{"parallel":true,"steps":[{"stepNumber":1,"type":"prep","instruction":"Mince garlic and grate parmesan.","ingredients":["🧄 4 cloves garlic, minced","🧀 50g parmesan, grated"],"equipment":["🔪 Knife"],"timerMinutes":0},{"stepNumber":2,"type":"cook","instruction":"Boil salted water and cook pasta until al dente.","ingredients":["🍝 200g spaghetti","🧂 Salt and pepper"],"equipment":["🍲 Large pot","📏 Colander"],"timerMinutes":10}]},{"parallel":false,"steps":[{"stepNumber":3,"type":"cook","instruction":"Melt butter, sauté garlic until fragrant. Toss with drained pasta, parmesan, and parsley.","ingredients":["🧈 3 tbsp butter","🧄 4 cloves garlic, minced","🧀 50g parmesan, grated","🌿 Fresh parsley, chopped"],"equipment":["🍳 Large pan"],"timerMinutes":3}]}]}
 
 EDITING (when conversation history exists):
-- Make ONLY the requested changes, preserve everything else
-- The previous recipe is in the last assistant message`;
+- Make ONLY the requested changes, preserve everything else`;
 
 export interface BuildPromptOptions {
   instructions?: string;

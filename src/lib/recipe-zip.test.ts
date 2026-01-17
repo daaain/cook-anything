@@ -9,6 +9,8 @@ describe('recipe-zip', () => {
     title: 'Test Recipe',
     slug: 'test-recipe',
     savedAt: '2024-01-15T10:00:00.000Z',
+    ingredients: [],
+    equipment: [],
     flowGroups: [
       {
         parallel: false,
