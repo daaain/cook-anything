@@ -44,6 +44,8 @@ export type MeasureSystem = 'metric' | 'american';
 
 export type ModelId = 'haiku' | 'sonnet' | 'opus';
 
+export type ProviderType = 'claude' | 'openai-local';
+
 export interface ProcessRecipeRequest {
   images: ImageData[];
   instructions?: string;
@@ -52,6 +54,9 @@ export interface ProcessRecipeRequest {
   servings?: number;
   oauthToken?: string;
   model?: ModelId;
+  providerType?: ProviderType;
+  apiEndpoint?: string;
+  customModel?: string;
 }
 
 export interface ProcessRecipeResponse {
@@ -59,4 +64,17 @@ export interface ProcessRecipeResponse {
   recipe?: Recipe;
   error?: string;
   assistantMessage?: string;
+}
+
+export interface OpenAIModel {
+  id: string;
+  object: string;
+  created?: number;
+  owned_by?: string;
+}
+
+export interface TestConnectionResponse {
+  success: boolean;
+  error?: string;
+  models?: OpenAIModel[];
 }

@@ -1,14 +1,19 @@
-import type { MeasureSystem, ModelId, Recipe } from './types';
+import type { MeasureSystem, ModelId, ProviderType, Recipe } from './types';
 
 const RECIPES_STORAGE_KEY = 'recipe-flow-recipes';
 const OAUTH_TOKEN_KEY = 'recipe-flow-oauth-token';
 const MODEL_KEY = 'recipe-flow-model';
 const MEASURE_SYSTEM_KEY = 'recipe-flow-measure-system';
 const SERVINGS_KEY = 'recipe-flow-servings';
+const PROVIDER_TYPE_KEY = 'recipe-flow-provider-type';
+const API_ENDPOINT_KEY = 'recipe-flow-api-endpoint';
+const CUSTOM_MODEL_KEY = 'recipe-flow-custom-model';
 
 const DEFAULT_MODEL: ModelId = 'opus';
 const DEFAULT_MEASURE_SYSTEM: MeasureSystem = 'metric';
 const DEFAULT_SERVINGS = 4;
+const DEFAULT_PROVIDER_TYPE: ProviderType = 'claude';
+const DEFAULT_API_ENDPOINT = 'http://localhost:1234/v1';
 
 // OAuth token management
 export function getOAuthToken(): string | null {
@@ -94,6 +99,63 @@ export function setServings(servings: number): void {
     return;
   }
   localStorage.setItem(SERVINGS_KEY, String(servings));
+}
+
+// Provider type management
+export function getProviderType(): ProviderType {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PROVIDER_TYPE;
+  }
+  const stored = localStorage.getItem(PROVIDER_TYPE_KEY);
+  if (stored === 'claude' || stored === 'openai-local') {
+    return stored;
+  }
+  return DEFAULT_PROVIDER_TYPE;
+}
+
+export function setProviderType(providerType: ProviderType): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(PROVIDER_TYPE_KEY, providerType);
+}
+
+// API endpoint management
+export function getApiEndpoint(): string {
+  if (typeof window === 'undefined') {
+    return DEFAULT_API_ENDPOINT;
+  }
+  const stored = localStorage.getItem(API_ENDPOINT_KEY);
+  return stored || DEFAULT_API_ENDPOINT;
+}
+
+export function setApiEndpoint(endpoint: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(API_ENDPOINT_KEY, endpoint);
+}
+
+// Custom model management
+export function getCustomModel(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return localStorage.getItem(CUSTOM_MODEL_KEY);
+}
+
+export function setCustomModel(model: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(CUSTOM_MODEL_KEY, model);
+}
+
+export function clearCustomModel(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.removeItem(CUSTOM_MODEL_KEY);
 }
 
 export function generateSlug(title: string): string {

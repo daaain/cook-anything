@@ -14,14 +14,17 @@ import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { resizeImage } from '@/lib/image-utils';
 import {
+  getApiEndpoint,
+  getCustomModel,
   getMeasureSystem,
   getModel,
   getOAuthToken,
+  getProviderType,
   getServings,
   setMeasureSystem as saveMeasureSystem,
   setServings as saveServings,
 } from '@/lib/storage';
-import type { ImageData, MeasureSystem, Message, Recipe } from '@/lib/types';
+import type { ImageData, MeasureSystem, Message, ProcessRecipeRequest, Recipe } from '@/lib/types';
 
 interface RecipeUploaderProps {
   onRecipeProcessed: (recipe: Recipe) => void;
@@ -47,7 +50,10 @@ export function RecipeUploader({
 
   // Load preferences on mount - use initial values if provided (for editing), otherwise load from storage
   useEffect(() => {
-    setHasToken(!!getOAuthToken());
+    // Check if we have the necessary authentication based on provider type
+    const providerType = getProviderType();
+    const hasAuth = providerType === 'openai-local' ? true : !!getOAuthToken(); // Local doesn't need token
+    setHasToken(hasAuth);
     setMeasureSystem(initialMeasureSystem ?? getMeasureSystem());
     setServings(initialServings ?? getServings());
   }, [initialMeasureSystem, initialServings]);
@@ -207,30 +213,49 @@ export function RecipeUploader({
       return;
     }
 
-    const oauthToken = getOAuthToken();
-    if (!oauthToken) {
-      setError('Please set your OAuth token in Settings first');
-      return;
+    const providerType = getProviderType();
+
+    // Check authentication based on provider type
+    if (providerType === 'claude') {
+      const oauthToken = getOAuthToken();
+      if (!oauthToken) {
+        setError('Please set your OAuth token in Settings first');
+        return;
+      }
     }
+    // For openai-local, no authentication check needed
 
     setError(null);
     setIsProcessing(true);
 
     try {
+      const requestBody: Partial<ProcessRecipeRequest> = {
+        images: images.map((img) => img.data),
+        instructions: adjustments || undefined,
+        conversationHistory,
+        measureSystem,
+        servings,
+        providerType,
+      };
+
+      // Add provider-specific settings
+      if (providerType === 'claude') {
+        requestBody.oauthToken = getOAuthToken() || undefined;
+        requestBody.model = getModel();
+      } else if (providerType === 'openai-local') {
+        requestBody.apiEndpoint = getApiEndpoint();
+        const customModel = getCustomModel();
+        if (customModel) {
+          requestBody.customModel = customModel;
+        }
+      }
+
       const response = await fetch('/api/process-recipe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          images: images.map((img) => img.data),
-          instructions: adjustments || undefined,
-          conversationHistory,
-          measureSystem,
-          servings,
-          oauthToken,
-          model: getModel(),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();

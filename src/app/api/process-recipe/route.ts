@@ -1,3 +1,4 @@
+import { createOpenAI } from '@ai-sdk/openai';
 import {
   type AssistantModelMessage,
   generateText,
@@ -143,7 +144,7 @@ INSTRUCTIONS:
 }
 
 // Create Claude Code provider, optionally with OAuth token
-function createProvider(oauthToken?: string) {
+function createClaudeProvider(oauthToken?: string) {
   return createClaudeCode({
     defaultSettings: {
       streamingInput: 'always',
@@ -162,6 +163,52 @@ function createProvider(oauthToken?: string) {
   });
 }
 
+// Create OpenAI provider for local API
+function createOpenAIProvider(apiEndpoint: string) {
+  return createOpenAI({
+    baseURL: apiEndpoint,
+    apiKey: 'not-needed', // Local APIs typically don't need auth
+  });
+}
+
+// Retry wrapper with exponential backoff
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelay = 1000): Promise<T> {
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Don't retry on authentication errors or validation errors
+      const errorMessage = lastError.message.toLowerCase();
+      if (
+        errorMessage.includes('unauthorized') ||
+        errorMessage.includes('authentication') ||
+        errorMessage.includes('invalid api key') ||
+        errorMessage.includes('quota') ||
+        lastError.name === 'AI_LoadAPIKeyError'
+      ) {
+        throw lastError;
+      }
+
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries - 1) {
+        throw lastError;
+      }
+
+      // Wait before retrying with exponential backoff
+      const delay = initialDelay * 2 ** attempt;
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  // This should never be reached, but TypeScript needs it
+  throw lastError || new Error('Unknown error during retry');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: ProcessRecipeRequest = await request.json();
@@ -173,6 +220,9 @@ export async function POST(request: NextRequest) {
       measureSystem = 'metric',
       servings = 4,
       model = 'opus',
+      providerType = 'claude',
+      apiEndpoint = 'http://localhost:1234/v1',
+      customModel,
     } = body;
 
     // Validate that we have either images or text instructions
@@ -234,16 +284,30 @@ export async function POST(request: NextRequest) {
     };
     messages.push(currentUserMessage);
 
-    // Call Claude API using Claude Code provider with structured output
-    // Uses OAuth token from request if provided, otherwise falls back to server's env/CLI auth
-    const claudeCode = createProvider(oauthToken);
-    const { output: recipe } = await generateText({
-      model: claudeCode(model),
-      output: Output.object({
-        schema: RecipeSchema,
-      }),
-      system: SYSTEM_PROMPT,
-      messages,
+    // Create provider based on provider type
+    let provider: ReturnType<typeof createOpenAIProvider> | ReturnType<typeof createClaudeProvider>;
+    let modelId: string;
+
+    if (providerType === 'openai-local') {
+      provider = createOpenAIProvider(apiEndpoint);
+      // Use custom model if specified, otherwise use default (unspecified)
+      modelId = customModel || 'gpt-4-vision-preview'; // fallback model name
+    } else {
+      // Claude provider
+      provider = createClaudeProvider(oauthToken);
+      modelId = model;
+    }
+
+    // Call AI API with structured output and retry logic
+    const { output: recipe } = await withRetry(async () => {
+      return await generateText({
+        model: provider(modelId),
+        output: Output.object({
+          schema: RecipeSchema,
+        }),
+        system: SYSTEM_PROMPT,
+        messages,
+      });
     });
 
     // Include the settings used to create this recipe
