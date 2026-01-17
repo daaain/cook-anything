@@ -19,6 +19,7 @@ export interface Step {
   type: 'prep' | 'cook' | 'rest';
   instruction: string;
   ingredients: string[];
+  equipment?: string[];
   timerMinutes: number;
 }
 

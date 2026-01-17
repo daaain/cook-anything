@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import type { Recipe } from '@/lib/types';
 import { FlowStep } from './FlowStep';
+import { MiseEnPlace } from './MiseEnPlace';
 import { ParallelSteps } from './ParallelSteps';
 
 interface FlowChartProps {
@@ -63,6 +64,9 @@ export function FlowChart({ recipe }: FlowChartProps) {
           </div>
         )}
       </div>
+
+      {/* Mise en Place */}
+      <MiseEnPlace recipe={recipe} />
 
       {/* Flow Steps */}
       <div className="space-y-4">

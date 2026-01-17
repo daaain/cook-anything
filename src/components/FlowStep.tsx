@@ -105,6 +105,20 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
               </div>
             )}
 
+            {/* Equipment */}
+            {step.equipment && step.equipment.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {step.equipment.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-block px-2 py-1 bg-emerald-50 rounded-full text-center text-s text-emerald-700 border border-emerald-200"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {/* Timer */}
             {step.timerMinutes > 0 && (
               <StepTimer
