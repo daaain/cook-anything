@@ -12,6 +12,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { testLocalConnection } from '@/lib/local-api';
 import {
   clearCustomModel,
   clearOAuthToken,
@@ -26,7 +27,7 @@ import {
   setOAuthToken,
   setProviderType,
 } from '@/lib/storage';
-import type { ModelId, OpenAIModel, ProviderType, TestConnectionResponse } from '@/lib/types';
+import type { ModelId, OpenAIModel, ProviderType } from '@/lib/types';
 
 export default function SettingsPage() {
   const [token, setToken] = useState('');
@@ -42,7 +43,6 @@ export default function SettingsPage() {
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [connectionError, setConnectionError] = useState<string>('');
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Valid pattern for SSR hydration */
   useEffect(() => {
     const stored = getOAuthToken();
     setSavedToken(stored);
@@ -57,7 +57,6 @@ export default function SettingsPage() {
       setSelectedCustomModel(customModel);
     }
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleModelChange = (model: ModelId) => {
     setSelectedModel(model);
@@ -103,17 +102,8 @@ export default function SettingsPage() {
     setConnectionError('');
 
     try {
-      const response = await fetch('/api/test-connection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          apiEndpoint: apiEndpointUrl,
-        }),
-      });
-
-      const result: TestConnectionResponse = await response.json();
+      // Call local API directly from browser (no server proxy needed)
+      const result = await testLocalConnection(apiEndpointUrl);
 
       if (result.success && result.models) {
         setConnectionStatus('success');

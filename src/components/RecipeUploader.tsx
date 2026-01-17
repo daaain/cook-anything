@@ -13,6 +13,7 @@ import {
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { resizeImage } from '@/lib/image-utils';
+import { processRecipeLocal } from '@/lib/local-api';
 import {
   getApiEndpoint,
   getCustomModel,
@@ -229,42 +230,56 @@ export function RecipeUploader({
     setIsProcessing(true);
 
     try {
-      const requestBody: Partial<ProcessRecipeRequest> = {
-        images: images.map((img) => img.data),
-        instructions: adjustments || undefined,
-        conversationHistory,
-        measureSystem,
-        servings,
-        providerType,
-      };
+      let recipe: Recipe;
 
-      // Add provider-specific settings
-      if (providerType === 'claude') {
-        requestBody.oauthToken = getOAuthToken() || undefined;
-        requestBody.model = getModel();
-      } else if (providerType === 'openai-local') {
-        requestBody.apiEndpoint = getApiEndpoint();
-        const customModel = getCustomModel();
-        if (customModel) {
-          requestBody.customModel = customModel;
+      if (providerType === 'openai-local') {
+        // Client-side processing for local OpenAI API (direct browser to localhost)
+        const result = await processRecipeLocal({
+          apiEndpoint: getApiEndpoint(),
+          customModel: getCustomModel() || undefined,
+          images: images.map((img) => img.data),
+          instructions: adjustments || undefined,
+          conversationHistory,
+          measureSystem,
+          servings,
+        });
+
+        if (!result.success || !result.recipe) {
+          throw new Error(result.error || 'Failed to process recipe');
         }
+
+        recipe = result.recipe;
+      } else {
+        // Server-side processing for Claude (needs CLI and OAuth)
+        const requestBody: Partial<ProcessRecipeRequest> = {
+          images: images.map((img) => img.data),
+          instructions: adjustments || undefined,
+          conversationHistory,
+          measureSystem,
+          servings,
+          providerType,
+          oauthToken: getOAuthToken() || undefined,
+          model: getModel(),
+        };
+
+        const response = await fetch('/api/process-recipe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to process recipe');
+        }
+
+        recipe = result.recipe;
       }
 
-      const response = await fetch('/api/process-recipe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to process recipe');
-      }
-
-      onRecipeProcessed(result.recipe);
+      onRecipeProcessed(recipe);
       setImages([]);
       setAdjustments('');
     } catch (err) {
