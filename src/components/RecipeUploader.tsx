@@ -13,15 +13,19 @@ import {
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { resizeImage } from '@/lib/image-utils';
+import { processRecipeLocal } from '@/lib/local-api';
 import {
+  getApiEndpoint,
+  getCustomModel,
   getMeasureSystem,
   getModel,
   getOAuthToken,
+  getProviderType,
   getServings,
   setMeasureSystem as saveMeasureSystem,
   setServings as saveServings,
 } from '@/lib/storage';
-import type { ImageData, MeasureSystem, Message, Recipe } from '@/lib/types';
+import type { ImageData, MeasureSystem, Message, ProcessRecipeRequest, Recipe } from '@/lib/types';
 
 interface RecipeUploaderProps {
   onRecipeProcessed: (recipe: Recipe) => void;
@@ -47,7 +51,10 @@ export function RecipeUploader({
 
   // Load preferences on mount - use initial values if provided (for editing), otherwise load from storage
   useEffect(() => {
-    setHasToken(!!getOAuthToken());
+    // Check if we have the necessary authentication based on provider type
+    const providerType = getProviderType();
+    const hasAuth = providerType === 'openai-local' ? true : !!getOAuthToken(); // Local doesn't need token
+    setHasToken(hasAuth);
     setMeasureSystem(initialMeasureSystem ?? getMeasureSystem());
     setServings(initialServings ?? getServings());
   }, [initialMeasureSystem, initialServings]);
@@ -207,39 +214,72 @@ export function RecipeUploader({
       return;
     }
 
-    const oauthToken = getOAuthToken();
-    if (!oauthToken) {
-      setError('Please set your OAuth token in Settings first');
-      return;
+    const providerType = getProviderType();
+
+    // Check authentication based on provider type
+    if (providerType === 'claude') {
+      const oauthToken = getOAuthToken();
+      if (!oauthToken) {
+        setError('Please set your OAuth token in Settings first');
+        return;
+      }
     }
+    // For openai-local, no authentication check needed
 
     setError(null);
     setIsProcessing(true);
 
     try {
-      const response = await fetch('/api/process-recipe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      let recipe: Recipe;
+
+      if (providerType === 'openai-local') {
+        // Client-side processing for local OpenAI API (direct browser to localhost)
+        const result = await processRecipeLocal({
+          apiEndpoint: getApiEndpoint(),
+          customModel: getCustomModel() || undefined,
           images: images.map((img) => img.data),
           instructions: adjustments || undefined,
           conversationHistory,
           measureSystem,
           servings,
-          oauthToken,
+        });
+
+        if (!result.success || !result.recipe) {
+          throw new Error(result.error || 'Failed to process recipe');
+        }
+
+        recipe = result.recipe;
+      } else {
+        // Server-side processing for Claude (needs CLI and OAuth)
+        const requestBody: Partial<ProcessRecipeRequest> = {
+          images: images.map((img) => img.data),
+          instructions: adjustments || undefined,
+          conversationHistory,
+          measureSystem,
+          servings,
+          providerType,
+          oauthToken: getOAuthToken() || undefined,
           model: getModel(),
-        }),
-      });
+        };
 
-      const result = await response.json();
+        const response = await fetch('/api/process-recipe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to process recipe');
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to process recipe');
+        }
+
+        recipe = result.recipe;
       }
 
-      onRecipeProcessed(result.recipe);
+      onRecipeProcessed(recipe);
       setImages([]);
       setAdjustments('');
     } catch (err) {

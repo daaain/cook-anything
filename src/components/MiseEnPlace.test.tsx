@@ -5,7 +5,7 @@ import { extractUniqueItems } from './MiseEnPlace';
 describe('MiseEnPlace', () => {
   const createTestRecipe = (overrides: Partial<Recipe> = {}): Recipe => ({
     title: 'Test Recipe',
-    servings: '4 servings',
+    servings: 4,
     flowGroups: [],
     ...overrides,
   });

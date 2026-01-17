@@ -1,26 +1,12 @@
-export interface Recipe {
-  title: string;
-  servings?: string;
-  flowGroups: FlowGroup[];
+import type { RecipeOutput } from './recipe';
+
+// Recipe extends the LLM output schema with app-specific metadata
+export interface Recipe extends RecipeOutput {
   slug?: string;
   savedAt?: string;
   conversationHistory?: Message[];
   measureSystem?: MeasureSystem;
   servingsCount?: number;
-}
-
-export interface FlowGroup {
-  parallel: boolean;
-  steps: Step[];
-}
-
-export interface Step {
-  stepNumber: number;
-  type: 'prep' | 'cook' | 'rest';
-  instruction: string;
-  ingredients: string[];
-  equipment?: string[];
-  timerMinutes: number;
 }
 
 export interface Message {
@@ -44,6 +30,8 @@ export type MeasureSystem = 'metric' | 'american';
 
 export type ModelId = 'haiku' | 'sonnet' | 'opus';
 
+export type ProviderType = 'claude' | 'openai-local';
+
 export interface ProcessRecipeRequest {
   images: ImageData[];
   instructions?: string;
@@ -52,6 +40,9 @@ export interface ProcessRecipeRequest {
   servings?: number;
   oauthToken?: string;
   model?: ModelId;
+  providerType?: ProviderType;
+  apiEndpoint?: string;
+  customModel?: string;
 }
 
 export interface ProcessRecipeResponse {
@@ -59,4 +50,17 @@ export interface ProcessRecipeResponse {
   recipe?: Recipe;
   error?: string;
   assistantMessage?: string;
+}
+
+export interface OpenAIModel {
+  id: string;
+  object: string;
+  created?: number;
+  owned_by?: string;
+}
+
+export interface TestConnectionResponse {
+  success: boolean;
+  error?: string;
+  models?: OpenAIModel[];
 }

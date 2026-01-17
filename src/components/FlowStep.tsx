@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronUp, Clock, Flame, Scissors } from 'lucide-react';
 import { useState } from 'react';
-import type { Step } from '@/lib/types';
+import type { Step } from '@/lib/recipe';
 import { StepTimer } from './StepTimer';
 
 interface FlowStepProps {

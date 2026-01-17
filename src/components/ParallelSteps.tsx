@@ -1,7 +1,7 @@
 'use client';
 
 import { GitBranch } from 'lucide-react';
-import type { FlowGroup } from '@/lib/types';
+import type { FlowGroup } from '@/lib/recipe';
 import { FlowStep } from './FlowStep';
 
 interface ParallelStepsProps {
