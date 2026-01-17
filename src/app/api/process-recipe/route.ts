@@ -24,6 +24,12 @@ const StepSchema = z.object({
   ingredients: z
     .array(z.string())
     .describe('Ingredients used in this step with emoji and quantity, e.g. "🧈 2 tbsp butter"'),
+  equipment: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Equipment needed for this step with emoji, e.g. "🍳 Cast iron skillet", "🔪 Chef\'s knife"',
+    ),
   timerMinutes: z.number().describe('Timer duration in minutes (0 for steps without timing)'),
 });
 
@@ -64,7 +70,8 @@ When building recipes:
 4. Categorize each step as prep (cutting, mixing, measuring), cook (heat applied), or rest (waiting, marinating, resting)
 5. Estimate timer durations for steps that need timing
 6. Make instructions clear and actionable
-7. Integrate ingredient amounts naturally into instructions`;
+7. Integrate ingredient amounts naturally into instructions
+8. List equipment needed for each step with emojis (e.g. "🍳 Cast iron skillet", "🔪 Chef's knife", "🥣 Mixing bowl")`;
 
 interface PromptOptions {
   instructions?: string;
@@ -102,12 +109,13 @@ IMPORTANT RULES:
 1. If ingredients are visible but no recipe, CREATE a sensible recipe for them
 2. Merge all ingredient quantities INTO the instruction text naturally
 3. List the ingredients used in each step in the ingredients array (use emoji for each ingredient, e.g. "🧈 2 tbsp butter")
-4. Group steps that can happen simultaneously as parallel: true
-5. Identify step types: prep (cutting, mixing), cook (heat applied), rest (waiting/marinating)
-6. Estimate timer minutes for steps that need timing (cooking, marinating, resting). Use 0 for steps without timers.
-7. Make instructions clear and actionable
-8. Keep the original recipe flow but optimise for parallel prep where logical
-9. Step numbers should be sequential across all groups`;
+4. List the equipment needed for each step in the equipment array (use emoji, e.g. "🍳 Cast iron skillet", "🔪 Chef's knife")
+5. Group steps that can happen simultaneously as parallel: true
+6. Identify step types: prep (cutting, mixing), cook (heat applied), rest (waiting/marinating)
+7. Estimate timer minutes for steps that need timing (cooking, marinating, resting). Use 0 for steps without timers.
+8. Make instructions clear and actionable
+9. Keep the original recipe flow but optimise for parallel prep where logical
+10. Step numbers should be sequential across all groups`;
   }
 
   // Text-only mode
@@ -125,12 +133,13 @@ INSTRUCTIONS:
 3. If it's just ingredients or a dish name, create a complete recipe
 4. Merge all ingredient quantities INTO the instruction text naturally
 5. List the ingredients used in each step in the ingredients array (use emoji for each ingredient, e.g. "🧈 2 tbsp butter")
-6. Group steps that can happen simultaneously as parallel: true
-7. Identify step types: prep (cutting, mixing), cook (heat applied), rest (waiting/marinating)
-8. Estimate timer minutes for steps that need timing (cooking, marinating, resting). Use 0 for steps without timers.
-9. Make instructions clear and actionable
-10. Optimise for parallel prep where logical
-11. Step numbers should be sequential across all groups and start from 1`;
+6. List the equipment needed for each step in the equipment array (use emoji, e.g. "🍳 Cast iron skillet", "🔪 Chef's knife")
+7. Group steps that can happen simultaneously as parallel: true
+8. Identify step types: prep (cutting, mixing), cook (heat applied), rest (waiting/marinating)
+9. Estimate timer minutes for steps that need timing (cooking, marinating, resting). Use 0 for steps without timers.
+10. Make instructions clear and actionable
+11. Optimise for parallel prep where logical
+12. Step numbers should be sequential across all groups and start from 1`;
 }
 
 // Create Claude Code provider, optionally with OAuth token

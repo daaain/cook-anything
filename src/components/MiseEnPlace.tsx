@@ -1,0 +1,118 @@
+'use client';
+
+import { ChefHat, ChevronDown, ChevronUp, UtensilsCrossed } from 'lucide-react';
+import { useState } from 'react';
+import type { Recipe } from '@/lib/types';
+
+interface MiseEnPlaceProps {
+  recipe: Recipe;
+}
+
+/**
+ * Extract unique items from all steps, case-insensitive deduplication
+ * preserving the original casing of the first occurrence.
+ */
+export function extractUniqueItems(recipe: Recipe, field: 'ingredients' | 'equipment'): string[] {
+  const seen = new Map<string, string>();
+
+  for (const group of recipe.flowGroups) {
+    for (const step of group.steps) {
+      const items = field === 'ingredients' ? step.ingredients : step.equipment;
+      if (!items) continue;
+
+      for (const item of items) {
+        const key = item.toLowerCase();
+        if (!seen.has(key)) {
+          seen.set(key, item);
+        }
+      }
+    }
+  }
+
+  return Array.from(seen.values());
+}
+
+interface CollapsibleSectionProps {
+  title: string;
+  items: string[];
+  icon: React.ReactNode;
+  defaultExpanded?: boolean;
+}
+
+function CollapsibleSection({
+  title,
+  items,
+  icon,
+  defaultExpanded = false,
+}: CollapsibleSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="border border-emerald-200 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center gap-2 p-3 bg-emerald-50 hover:bg-emerald-100 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2 text-emerald-700">
+          {icon}
+          <span className="font-medium">{title}</span>
+        </div>
+        <span className="text-sm text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+          {items.length}
+        </span>
+        <div className="flex-1" />
+        <div className="text-emerald-600">
+          {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="p-3 bg-white">
+          <div className="flex flex-wrap gap-2">
+            {items.map((item) => (
+              <span
+                key={item}
+                className="inline-block px-3 py-1.5 bg-emerald-50 rounded-full text-sm text-emerald-700 border border-emerald-200"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function MiseEnPlace({ recipe }: MiseEnPlaceProps) {
+  const ingredients = extractUniqueItems(recipe, 'ingredients');
+  const equipment = extractUniqueItems(recipe, 'equipment');
+
+  if (ingredients.length === 0 && equipment.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mb-6 space-y-2">
+      <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
+        <ChefHat className="w-5 h-5 text-emerald-600" />
+        Mise en Place
+      </h2>
+      <div className="space-y-2">
+        <CollapsibleSection
+          title="Ingredients"
+          items={ingredients}
+          icon={<ChefHat className="w-4 h-4" />}
+        />
+        <CollapsibleSection
+          title="Equipment"
+          items={equipment}
+          icon={<UtensilsCrossed className="w-4 h-4" />}
+        />
+      </div>
+    </div>
+  );
+}
