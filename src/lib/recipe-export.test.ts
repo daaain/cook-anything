@@ -11,7 +11,7 @@ import type { Message, Recipe } from './types';
 describe('recipe-export', () => {
   const createTestRecipe = (overrides: Partial<Recipe> = {}): Recipe => ({
     title: 'Test Recipe',
-    servings: '4 servings',
+    servings: 4,
     slug: 'test-recipe',
     savedAt: '2024-01-15T10:30:00.000Z',
     flowGroups: [
@@ -201,11 +201,11 @@ describe('recipe-export', () => {
     });
 
     it('should include servings when provided', () => {
-      const recipe = createTestRecipe({ servings: '6 portions' });
+      const recipe = createTestRecipe({ servings: 6 });
 
       const html = generateRecipeHtml(recipe);
 
-      expect(html).toContain('6 portions');
+      expect(html).toContain('6');
     });
 
     it('should embed JSON data in script tag', () => {
@@ -391,7 +391,7 @@ describe('recipe-export', () => {
     it('should complete round-trip export/import correctly', () => {
       const originalRecipe = createTestRecipe({
         title: 'Round Trip Recipe',
-        servings: '8 servings',
+        servings: 8,
         measureSystem: 'metric',
         servingsCount: 8,
         flowGroups: [

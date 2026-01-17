@@ -71,7 +71,7 @@ describe('recipe-zip', () => {
         createTestRecipe({
           slug: 'parseable',
           title: 'Parseable Recipe',
-          servings: '4 servings',
+          servings: 4,
         }),
       ];
 
@@ -84,7 +84,7 @@ describe('recipe-zip', () => {
       expect(parsed).not.toBeNull();
       expect(parsed?.title).toBe('Parseable Recipe');
       expect(parsed?.slug).toBe('parseable');
-      expect(parsed?.servings).toBe('4 servings');
+      expect(parsed?.servings).toBe(4);
     });
 
     it('should handle empty recipe list', async () => {
@@ -139,7 +139,7 @@ describe('recipe-zip', () => {
         createTestRecipe({
           slug: 'full-metadata',
           title: 'Full Metadata Recipe',
-          servings: '8 portions',
+          servings: 8,
           measureSystem: 'american',
           servingsCount: 8,
           savedAt: '2024-06-15T14:30:00.000Z',

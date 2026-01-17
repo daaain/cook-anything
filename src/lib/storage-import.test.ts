@@ -354,7 +354,7 @@ describe('storage import functions', () => {
       const fullRecipe = createTestRecipe({
         slug: 'full-recipe',
         title: 'Full Recipe',
-        servings: '6 servings',
+        servings: 6,
         measureSystem: 'metric',
         servingsCount: 6,
         flowGroups: [
@@ -381,7 +381,7 @@ describe('storage import functions', () => {
 
       const saved = getSavedRecipes();
       expect(saved[0].title).toBe('Full Recipe');
-      expect(saved[0].servings).toBe('6 servings');
+      expect(saved[0].servings).toBe(6);
       expect(saved[0].measureSystem).toBe('metric');
       expect(saved[0].servingsCount).toBe(6);
       expect(saved[0].flowGroups).toHaveLength(1);
