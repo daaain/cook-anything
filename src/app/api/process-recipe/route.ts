@@ -32,44 +32,6 @@ function createClaudeProvider(oauthToken?: string) {
   });
 }
 
-// Retry wrapper with exponential backoff
-async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initialDelay = 1000): Promise<T> {
-  let lastError: Error | undefined;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-
-      // Don't retry on authentication errors or validation errors
-      const errorMessage = lastError.message.toLowerCase();
-      if (
-        errorMessage.includes('unauthorized') ||
-        errorMessage.includes('authentication') ||
-        errorMessage.includes('invalid api key') ||
-        errorMessage.includes('quota') ||
-        lastError.name === 'AI_LoadAPIKeyError'
-      ) {
-        throw lastError;
-      }
-
-      // If this was the last attempt, throw the error
-      if (attempt === maxRetries - 1) {
-        throw lastError;
-      }
-
-      // Wait before retrying with exponential backoff
-      const delay = initialDelay * 2 ** attempt;
-      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-
-  // This should never be reached, but TypeScript needs it
-  throw lastError || new Error('Unknown error during retry');
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body: ProcessRecipeRequest = await request.json();
@@ -145,16 +107,14 @@ export async function POST(request: NextRequest) {
     // Create Claude provider
     const provider = createClaudeProvider(oauthToken);
 
-    // Call AI API with structured output and retry logic
-    const { output: recipe } = await withRetry(async () => {
-      return await generateText({
-        model: provider(model),
-        output: Output.object({
-          schema: RecipeSchema,
-        }),
-        system: SYSTEM_PROMPT,
-        messages,
-      });
+    // Call AI API with structured output
+    const { output: recipe } = await generateText({
+      model: provider(model),
+      output: Output.object({
+        schema: RecipeSchema,
+      }),
+      system: SYSTEM_PROMPT,
+      messages,
     });
 
     // Include the settings used to create this recipe
