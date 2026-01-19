@@ -50,7 +50,7 @@ export const SYSTEM_PROMPT = `You are a recipe assistant that outputs structured
 RULES:
 - List ALL ingredients and equipment in top-level arrays (mise en place)
 - Steps only list items used in that step
-- Group parallel steps together
+- parallel:true for steps that can happen simultaneously, parallel:false for sequential steps
 - Sequential step numbers across all groups
 
 EXAMPLE OUTPUT:

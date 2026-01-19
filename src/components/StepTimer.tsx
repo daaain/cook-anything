@@ -20,7 +20,39 @@ function stripEmojis(text: string): string {
     .trim();
 }
 
-function speakCompletion(ingredients: string[], stepNumber: number) {
+// Get voices with retry logic for Firefox (which may return empty array on first call)
+function getVoicesWithRetry(maxAttempts = 10): Promise<SpeechSynthesisVoice[]> {
+  return new Promise((resolve) => {
+    let attempts = 0;
+
+    const tryGetVoices = () => {
+      const voices = speechSynthesis.getVoices();
+      attempts++;
+
+      if (voices.length > 0 || attempts >= maxAttempts) {
+        resolve(voices);
+      } else {
+        setTimeout(tryGetVoices, 100);
+      }
+    };
+
+    tryGetVoices();
+  });
+}
+
+function findPreferredVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  const preferredVoice = voices.find((v) => {
+    const uri = v.voiceURI.toLowerCase();
+    return (
+      v.lang.startsWith('en') &&
+      (uri.includes('google') || uri.includes('microsoft') || uri.includes('natural'))
+    );
+  });
+
+  return preferredVoice ?? voices.find((v) => v.lang.startsWith('en'));
+}
+
+async function speakCompletion(ingredients: string[], stepNumber: number) {
   if (!('speechSynthesis' in window)) return;
 
   // Strip emojis from ingredients for cleaner speech
@@ -40,14 +72,9 @@ function speakCompletion(ingredients: string[], stepNumber: number) {
   const utterance = new SpeechSynthesisUtterance(message);
   utterance.lang = 'en-GB';
 
-  // Try to find a better quality voice
-  const voices = speechSynthesis.getVoices();
-  const preferredVoice =
-    voices.find(
-      (v) =>
-        v.lang.startsWith('en') &&
-        (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Natural')),
-    ) ?? voices.find((v) => v.lang.startsWith('en-GB'));
+  // Get voices with retry for Firefox compatibility
+  const voices = await getVoicesWithRetry();
+  const preferredVoice = findPreferredVoice(voices);
 
   if (preferredVoice) {
     utterance.voice = preferredVoice;
