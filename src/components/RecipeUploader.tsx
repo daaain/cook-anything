@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { resizeImage } from '@/lib/image-utils';
 import { processRecipeLocal } from '@/lib/local-api';
 import {
+  getAllowClarifyingQuestions,
   getApiEndpoint,
   getCustomModel,
   getMeasureSystem,
@@ -22,10 +23,20 @@ import {
   getOAuthToken,
   getProviderType,
   getServings,
+  setAllowClarifyingQuestions as saveAllowClarifyingQuestions,
   setMeasureSystem as saveMeasureSystem,
   setServings as saveServings,
 } from '@/lib/storage';
-import type { ImageData, MeasureSystem, Message, ProcessRecipeRequest, Recipe } from '@/lib/types';
+import type {
+  ClarifyingQuestionsResponse,
+  ImageData,
+  MeasureSystem,
+  Message,
+  ProcessRecipeRequest,
+  QuestionAnswer,
+  Recipe,
+} from '@/lib/types';
+import { ClarifyingQuestions } from './ClarifyingQuestions';
 
 interface RecipeUploaderProps {
   onRecipeProcessed: (recipe: Recipe) => void;
@@ -44,9 +55,12 @@ export function RecipeUploader({
   const [adjustments, setAdjustments] = useState('');
   const [measureSystem, setMeasureSystem] = useState<MeasureSystem>('metric');
   const [servings, setServings] = useState(4);
+  const [allowClarifyingQuestions, setAllowClarifyingQuestions] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [clarifyingQuestionsResponse, setClarifyingQuestionsResponse] =
+    useState<ClarifyingQuestionsResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load preferences on mount - use initial values if provided (for editing), otherwise load from storage
@@ -57,7 +71,14 @@ export function RecipeUploader({
     setHasToken(hasAuth);
     setMeasureSystem(initialMeasureSystem ?? getMeasureSystem());
     setServings(initialServings ?? getServings());
+    setAllowClarifyingQuestions(getAllowClarifyingQuestions());
   }, [initialMeasureSystem, initialServings]);
+
+  // Persist clarifying questions preference to local storage
+  const handleAllowClarifyingQuestionsChange = (allow: boolean) => {
+    setAllowClarifyingQuestions(allow);
+    saveAllowClarifyingQuestions(allow);
+  };
 
   // Persist measure system changes to local storage
   const handleMeasureSystemChange = (system: MeasureSystem) => {
@@ -207,6 +228,76 @@ export function RecipeUploader({
     };
   }, [handlePaste]);
 
+  // Process recipe with optional clarifying questions
+  const processRecipe = async (clarifyingAnswers?: QuestionAnswer[]) => {
+    const providerType = getProviderType();
+
+    if (providerType === 'openai-local') {
+      // Client-side processing for local OpenAI API (direct browser to localhost)
+      const result = await processRecipeLocal({
+        apiEndpoint: getApiEndpoint(),
+        customModel: getCustomModel() || undefined,
+        images: images.map((img) => img.data),
+        instructions: adjustments || undefined,
+        conversationHistory,
+        measureSystem,
+        servings,
+        allowClarifyingQuestions: allowClarifyingQuestions && !clarifyingAnswers,
+        clarifyingAnswers,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to process recipe');
+      }
+
+      // Check if we got clarifying questions
+      if (result.clarifyingQuestions) {
+        return { clarifyingQuestions: result.clarifyingQuestions };
+      }
+
+      if (!result.recipe) {
+        throw new Error('No recipe returned');
+      }
+
+      return { recipe: result.recipe };
+    }
+
+    // Server-side processing for Claude (needs CLI and OAuth)
+    const requestBody: Partial<ProcessRecipeRequest> = {
+      images: images.map((img) => img.data),
+      instructions: adjustments || undefined,
+      conversationHistory,
+      measureSystem,
+      servings,
+      providerType,
+      oauthToken: getOAuthToken() || undefined,
+      model: getModel(),
+      allowClarifyingQuestions: allowClarifyingQuestions && !clarifyingAnswers,
+      clarifyingAnswers,
+    };
+
+    const response = await fetch('/api/process-recipe', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to process recipe');
+    }
+
+    // Check if we got clarifying questions
+    if (result.clarifyingQuestions) {
+      return { clarifyingQuestions: result.clarifyingQuestions };
+    }
+
+    return { recipe: result.recipe };
+  };
+
   const handleSubmit = async () => {
     // Allow either images or text instructions (or both)
     if (images.length === 0 && !adjustments.trim()) {
@@ -230,58 +321,20 @@ export function RecipeUploader({
     setIsProcessing(true);
 
     try {
-      let recipe: Recipe;
+      const result = await processRecipe();
 
-      if (providerType === 'openai-local') {
-        // Client-side processing for local OpenAI API (direct browser to localhost)
-        const result = await processRecipeLocal({
-          apiEndpoint: getApiEndpoint(),
-          customModel: getCustomModel() || undefined,
-          images: images.map((img) => img.data),
-          instructions: adjustments || undefined,
-          conversationHistory,
-          measureSystem,
-          servings,
-        });
-
-        if (!result.success || !result.recipe) {
-          throw new Error(result.error || 'Failed to process recipe');
-        }
-
-        recipe = result.recipe;
-      } else {
-        // Server-side processing for Claude (needs CLI and OAuth)
-        const requestBody: Partial<ProcessRecipeRequest> = {
-          images: images.map((img) => img.data),
-          instructions: adjustments || undefined,
-          conversationHistory,
-          measureSystem,
-          servings,
-          providerType,
-          oauthToken: getOAuthToken() || undefined,
-          model: getModel(),
-        };
-
-        const response = await fetch('/api/process-recipe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to process recipe');
-        }
-
-        recipe = result.recipe;
+      if (result.clarifyingQuestions) {
+        // Show clarifying questions UI
+        setClarifyingQuestionsResponse(result.clarifyingQuestions);
+        setIsProcessing(false);
+        return;
       }
 
-      onRecipeProcessed(recipe);
-      setImages([]);
-      setAdjustments('');
+      if (result.recipe) {
+        onRecipeProcessed(result.recipe);
+        setImages([]);
+        setAdjustments('');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -289,7 +342,68 @@ export function RecipeUploader({
     }
   };
 
+  // Handle clarifying questions submission
+  const handleClarifyingQuestionsSubmit = async (answers: QuestionAnswer[]) => {
+    setError(null);
+    setIsProcessing(true);
+
+    try {
+      const result = await processRecipe(answers);
+
+      if (result.recipe) {
+        onRecipeProcessed(result.recipe);
+        setImages([]);
+        setAdjustments('');
+        setClarifyingQuestionsResponse(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle skipping clarifying questions
+  const handleClarifyingQuestionsSkip = async () => {
+    setError(null);
+    setIsProcessing(true);
+
+    try {
+      // Process without answers but with an empty array to signal "skip"
+      const result = await processRecipe([]);
+
+      if (result.recipe) {
+        onRecipeProcessed(result.recipe);
+        setImages([]);
+        setAdjustments('');
+        setClarifyingQuestionsResponse(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle cancelling clarifying questions
+  const handleClarifyingQuestionsCancel = () => {
+    setClarifyingQuestionsResponse(null);
+  };
+
   const canSubmit = (images.length > 0 || adjustments.trim()) && !isProcessing;
+
+  // Show clarifying questions UI if we have questions
+  if (clarifyingQuestionsResponse) {
+    return (
+      <ClarifyingQuestions
+        questionsResponse={clarifyingQuestionsResponse}
+        onSubmit={handleClarifyingQuestionsSubmit}
+        onSkip={handleClarifyingQuestionsSkip}
+        onCancel={handleClarifyingQuestionsCancel}
+        isSubmitting={isProcessing}
+      />
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -466,6 +580,24 @@ export function RecipeUploader({
               />
             </div>
           </div>
+        </div>
+
+        {/* Clarifying Questions Checkbox */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="allow-clarifying"
+            checked={allowClarifyingQuestions}
+            onChange={(e) => handleAllowClarifyingQuestionsChange(e.target.checked)}
+            disabled={isProcessing}
+            className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500 disabled:opacity-50"
+          />
+          <label
+            htmlFor="allow-clarifying"
+            className="text-sm text-gray-700 select-none cursor-pointer"
+          >
+            Allow clarifying questions for better results
+          </label>
         </div>
 
         {/* Recipe Text / Adjustments Input */}

@@ -14,12 +14,21 @@ import {
   type TextPart,
   type UserModelMessage,
 } from 'ai';
-import { buildUserPrompt, RecipeSchema, SYSTEM_PROMPT } from './recipe';
+import {
+  buildUserPrompt,
+  CLARIFYING_QUESTIONS_PROMPT,
+  type ProcessResponse,
+  ProcessResponseSchema,
+  RecipeSchema,
+  SYSTEM_PROMPT,
+} from './recipe';
 import type {
+  ClarifyingQuestionsResponse,
   ImageData,
   MeasureSystem,
   Message,
   OpenAIModel,
+  QuestionAnswer,
   Recipe,
   TestConnectionResponse,
 } from './types';
@@ -77,11 +86,14 @@ export interface ProcessRecipeLocalOptions {
   conversationHistory?: Message[];
   measureSystem: MeasureSystem;
   servings: number;
+  allowClarifyingQuestions?: boolean;
+  clarifyingAnswers?: QuestionAnswer[];
 }
 
 export interface ProcessRecipeLocalResponse {
   success: boolean;
   recipe?: Recipe;
+  clarifyingQuestions?: ClarifyingQuestionsResponse;
   error?: string;
 }
 
@@ -100,6 +112,8 @@ export async function processRecipeLocal(
     conversationHistory = [],
     measureSystem,
     servings,
+    allowClarifyingQuestions = false,
+    clarifyingAnswers,
   } = options;
 
   try {
@@ -137,7 +151,14 @@ export async function processRecipeLocal(
 
     // Build the current user message (with or without images)
     const hasImages = images && images.length > 0;
-    const userPrompt = buildUserPrompt({ instructions, measureSystem, servings, hasImages });
+    const userPrompt = buildUserPrompt({
+      instructions,
+      measureSystem,
+      servings,
+      hasImages,
+      allowClarifyingQuestions,
+      clarifyingAnswers,
+    });
     const userContent: Array<ImagePart | TextPart> = [];
 
     if (hasImages) {
@@ -164,11 +185,52 @@ export async function processRecipeLocal(
     };
     messages.push(currentUserMessage);
 
-    // Call AI API with structured output using generateObject
+    // Determine if we should allow clarifying questions
+    // Allow questions only if: enabled, no answers yet provided, and this is a new request
+    const shouldAllowQuestions =
+      allowClarifyingQuestions && !clarifyingAnswers && conversationHistory.length === 0;
+
+    // Build system prompt - add clarifying questions instructions if allowed
+    const systemPrompt = shouldAllowQuestions
+      ? SYSTEM_PROMPT + CLARIFYING_QUESTIONS_PROMPT
+      : SYSTEM_PROMPT;
+
+    if (shouldAllowQuestions) {
+      // Use discriminated union schema that allows either questions or recipe
+      const { object } = await generateObject({
+        model,
+        schema: ProcessResponseSchema,
+        system: systemPrompt,
+        messages,
+      });
+
+      const response = object as ProcessResponse;
+
+      if (response.type === 'clarifying_questions') {
+        return {
+          success: true,
+          clarifyingQuestions: response,
+        };
+      }
+
+      // It's a recipe response
+      const recipeWithSettings: Recipe = {
+        ...response.recipe,
+        measureSystem,
+        servingsCount: servings,
+      };
+
+      return {
+        success: true,
+        recipe: recipeWithSettings,
+      };
+    }
+
+    // Standard recipe generation (no questions allowed or answers already provided)
     const { object: recipe } = await generateObject({
       model,
       schema: RecipeSchema,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages,
     });
 

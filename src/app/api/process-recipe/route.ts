@@ -9,7 +9,14 @@ import {
 } from 'ai';
 import { createClaudeCode } from 'ai-sdk-provider-claude-code';
 import { type NextRequest, NextResponse } from 'next/server';
-import { buildUserPrompt, RecipeSchema, SYSTEM_PROMPT } from '@/lib/recipe';
+import {
+  buildUserPrompt,
+  CLARIFYING_QUESTIONS_PROMPT,
+  type ProcessResponse,
+  ProcessResponseSchema,
+  RecipeSchema,
+  SYSTEM_PROMPT,
+} from '@/lib/recipe';
 import type { ProcessRecipeRequest, Recipe } from '@/lib/types';
 
 // Create Claude Code provider, optionally with OAuth token
@@ -43,6 +50,8 @@ export async function POST(request: NextRequest) {
       measureSystem = 'metric',
       servings = 4,
       model = 'opus',
+      allowClarifyingQuestions = false,
+      clarifyingAnswers,
     } = body;
 
     // Validate that we have either images or text instructions
@@ -94,7 +103,14 @@ export async function POST(request: NextRequest) {
     // Add the text prompt
     const textPart: TextPart = {
       type: 'text',
-      text: buildUserPrompt({ instructions, measureSystem, servings, hasImages }),
+      text: buildUserPrompt({
+        instructions,
+        measureSystem,
+        servings,
+        hasImages,
+        allowClarifyingQuestions,
+        clarifyingAnswers,
+      }),
     };
     userContent.push(textPart);
 
@@ -107,13 +123,58 @@ export async function POST(request: NextRequest) {
     // Create Claude provider
     const provider = createClaudeProvider(oauthToken);
 
-    // Call AI API with structured output
+    // Determine if we should allow clarifying questions
+    // Allow questions only if: enabled, no answers yet provided, and this is a new request (no conversation history)
+    const shouldAllowQuestions =
+      allowClarifyingQuestions &&
+      !clarifyingAnswers &&
+      (!conversationHistory || conversationHistory.length === 0);
+
+    // Build system prompt - add clarifying questions instructions if allowed
+    const systemPrompt = shouldAllowQuestions
+      ? SYSTEM_PROMPT + CLARIFYING_QUESTIONS_PROMPT
+      : SYSTEM_PROMPT;
+
+    if (shouldAllowQuestions) {
+      // Use discriminated union schema that allows either questions or recipe
+      const { output } = await generateText({
+        model: provider(model),
+        output: Output.object({
+          schema: ProcessResponseSchema,
+        }),
+        system: systemPrompt,
+        messages,
+      });
+
+      const response = output as ProcessResponse;
+
+      if (response.type === 'clarifying_questions') {
+        return NextResponse.json({
+          success: true,
+          clarifyingQuestions: response,
+        });
+      }
+
+      // It's a recipe response
+      const recipeWithSettings: Recipe = {
+        ...response.recipe,
+        measureSystem,
+        servingsCount: servings,
+      };
+
+      return NextResponse.json({
+        success: true,
+        recipe: recipeWithSettings,
+      });
+    }
+
+    // Standard recipe generation (no questions allowed or answers already provided)
     const { output: recipe } = await generateText({
       model: provider(model),
       output: Output.object({
         schema: RecipeSchema,
       }),
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages,
     });
 

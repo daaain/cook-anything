@@ -80,7 +80,9 @@ describe('recipe-zip', () => {
       const blob = await exportAllRecipesToZip(recipes);
       const zip = await JSZip.loadAsync(blob);
 
-      const htmlContent = await zip.file('parseable.html')!.async('string');
+      const file = zip.file('parseable.html');
+      if (!file) throw new Error('Expected file to exist');
+      const htmlContent = await file.async('string');
       const parsed = parseRecipeFromHtml(htmlContent);
 
       expect(parsed).not.toBeNull();
@@ -151,7 +153,9 @@ describe('recipe-zip', () => {
       const blob = await exportAllRecipesToZip(recipes);
       const zip = await JSZip.loadAsync(blob);
 
-      const htmlContent = await zip.file('full-metadata.html')!.async('string');
+      const file = zip.file('full-metadata.html');
+      if (!file) throw new Error('Expected file to exist');
+      const htmlContent = await file.async('string');
       const parsed = parseRecipeFromHtml(htmlContent);
 
       expect(parsed?.measureSystem).toBe('american');

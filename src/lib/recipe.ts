@@ -40,10 +40,53 @@ export const RecipeSchema = z.object({
   flowGroups: z.array(FlowGroupSchema).describe('Recipe steps grouped by parallel execution'),
 });
 
+// Clarifying question schemas
+export const ClarifyingQuestionSchema = z.object({
+  id: z.string().describe('Unique identifier for the question'),
+  question: z.string().describe('The question to ask the user'),
+  options: z
+    .array(z.string().describe('Option text that serves as both display label and value'))
+    .min(2)
+    .max(5)
+    .describe('Multiple choice options for the question'),
+});
+
+export const ClarifyingQuestionsResponseSchema = z.object({
+  type: z.literal('clarifying_questions'),
+  questions: z.array(ClarifyingQuestionSchema).min(1).max(5),
+  context: z.string().optional().describe('Brief explanation of why questions are needed'),
+});
+
+export const RecipeResponseSchema = z.object({
+  type: z.literal('recipe'),
+  recipe: RecipeSchema,
+});
+
+export const ProcessResponseSchema = z.discriminatedUnion('type', [
+  ClarifyingQuestionsResponseSchema,
+  RecipeResponseSchema,
+]);
+
 // Infer TypeScript types from Zod schemas
 export type Step = z.infer<typeof StepSchema>;
 export type FlowGroup = z.infer<typeof FlowGroupSchema>;
 export type RecipeOutput = z.infer<typeof RecipeSchema>;
+export type ClarifyingQuestion = z.infer<typeof ClarifyingQuestionSchema>;
+export type ClarifyingQuestionsResponse = z.infer<typeof ClarifyingQuestionsResponseSchema>;
+export type RecipeResponse = z.infer<typeof RecipeResponseSchema>;
+export type ProcessResponse = z.infer<typeof ProcessResponseSchema>;
+
+export const CLARIFYING_QUESTIONS_PROMPT = `
+
+CLARIFYING QUESTIONS MODE:
+When the user's request is ambiguous or could benefit from clarification, you may ask 1-5 clarifying questions BEFORE generating the recipe. Return questions when:
+- The recipe request is vague (e.g., "something with chicken", "a quick dinner")
+- There are multiple reasonable interpretations
+- Key details like cuisine style, dietary restrictions, or cooking method would significantly affect the recipe
+
+If the request is clear and specific (e.g., "Pasta carbonara", "Classic beef tacos"), generate the recipe directly without asking questions.
+
+When asking questions, respond with type "clarifying_questions" and provide multiple-choice options that cover the most likely preferences.`;
 
 export const SYSTEM_PROMPT = `You are a recipe assistant that outputs structured JSON recipes.
 
@@ -59,11 +102,19 @@ EXAMPLE OUTPUT:
 EDITING (when conversation history exists):
 - Make ONLY the requested changes, preserve everything else`;
 
+export interface QuestionAnswer {
+  questionId: string;
+  selectedOption: string | null; // null if "Other" was selected
+  customText?: string; // Custom text when "Other" is selected
+}
+
 export interface BuildPromptOptions {
   instructions?: string;
   measureSystem: 'metric' | 'american';
   servings: number;
   hasImages: boolean;
+  allowClarifyingQuestions?: boolean;
+  clarifyingAnswers?: QuestionAnswer[];
 }
 
 export function buildUserPrompt({
@@ -71,15 +122,36 @@ export function buildUserPrompt({
   measureSystem,
   servings,
   hasImages,
+  clarifyingAnswers,
 }: BuildPromptOptions): string {
   const units = measureSystem === 'metric' ? 'metric (g, ml, °C)' : 'US (cups, tbsp, oz, °F)';
 
+  // Build the base prompt
+  let basePrompt: string;
   if (hasImages) {
     const userRequest = instructions ? `\nUser request: "${instructions}"` : '';
-    return `Analyze these images and create a recipe.${userRequest}
+    basePrompt = `Analyze these images and create a recipe.${userRequest}
+Use ${units}, scale to ${servings} servings.`;
+  } else {
+    basePrompt = `Create a recipe: "${instructions}"
 Use ${units}, scale to ${servings} servings.`;
   }
 
-  return `Create a recipe: "${instructions}"
-Use ${units}, scale to ${servings} servings.`;
+  // If we have answers to clarifying questions, include them
+  if (clarifyingAnswers && clarifyingAnswers.length > 0) {
+    const answersText = clarifyingAnswers
+      .map((a) => {
+        if (a.selectedOption === null && a.customText) {
+          return `- ${a.questionId}: ${a.customText}`;
+        }
+        return `- ${a.questionId}: ${a.selectedOption}`;
+      })
+      .join('\n');
+    return `${basePrompt}
+
+User preferences from clarifying questions:
+${answersText}`;
+  }
+
+  return basePrompt;
 }
