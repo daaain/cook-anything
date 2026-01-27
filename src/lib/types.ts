@@ -1,4 +1,9 @@
-import type { RecipeOutput } from './recipe';
+import type {
+  ClarifyingQuestion,
+  ClarifyingQuestionsResponse,
+  QuestionAnswer,
+  RecipeOutput,
+} from './recipe';
 
 // Recipe extends the LLM output schema with app-specific metadata
 export interface Recipe extends RecipeOutput {
@@ -43,11 +48,17 @@ export interface ProcessRecipeRequest {
   providerType?: ProviderType;
   apiEndpoint?: string;
   customModel?: string;
+  allowClarifyingQuestions?: boolean;
+  clarifyingAnswers?: QuestionAnswer[];
 }
+
+// Re-export types from recipe.ts for convenience
+export type { ClarifyingQuestion, ClarifyingQuestionsResponse, QuestionAnswer };
 
 export interface ProcessRecipeResponse {
   success: boolean;
   recipe?: Recipe;
+  clarifyingQuestions?: ClarifyingQuestionsResponse;
   error?: string;
   assistantMessage?: string;
 }

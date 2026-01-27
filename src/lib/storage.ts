@@ -8,6 +8,7 @@ const SERVINGS_KEY = 'recipe-flow-servings';
 const PROVIDER_TYPE_KEY = 'recipe-flow-provider-type';
 const API_ENDPOINT_KEY = 'recipe-flow-api-endpoint';
 const CUSTOM_MODEL_KEY = 'recipe-flow-custom-model';
+const ALLOW_CLARIFYING_QUESTIONS_KEY = 'recipe-flow-allow-clarifying-questions';
 
 const DEFAULT_MODEL: ModelId = 'opus';
 const DEFAULT_MEASURE_SYSTEM: MeasureSystem = 'metric';
@@ -156,6 +157,25 @@ export function clearCustomModel(): void {
     return;
   }
   localStorage.removeItem(CUSTOM_MODEL_KEY);
+}
+
+// Clarifying questions preference management
+export function getAllowClarifyingQuestions(): boolean {
+  if (typeof window === 'undefined') {
+    return true; // Default to true
+  }
+  const stored = localStorage.getItem(ALLOW_CLARIFYING_QUESTIONS_KEY);
+  if (stored === 'false') {
+    return false;
+  }
+  return true; // Default to true
+}
+
+export function setAllowClarifyingQuestions(allow: boolean): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  localStorage.setItem(ALLOW_CLARIFYING_QUESTIONS_KEY, String(allow));
 }
 
 export function generateSlug(title: string): string {
