@@ -36,3 +36,8 @@ yarn-error.log*
 
 # turbo
 .turbo
+
+# MCP bundled UI (generated)
+src/lib/mcp/bundled-ui.ts
+src/lib/mcp/dist/
+

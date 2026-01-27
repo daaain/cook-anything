@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun --bun next dev",
-    "build": "bun --bun next build",
+    "dev": "bun --bun next dev --webpack",
+    "build": "bun run build:mcp && bun --bun next build",
+    "build:mcp": "vite build --config vite.mcp.config.ts && bun run scripts/bundle-mcp-html.ts",
     "start": "bun --bun next start",
     "lint": "bun biome check . && bun eslint .",
     "lint:fix": "bun biome check --write . && bun eslint . --fix",
@@ -17,6 +18,8 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.13",
     "@anthropic-ai/claude-code": "^2.0.76",
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "ai": "^6.0.6",
     "ai-sdk-provider-claude-code": "^3.1.0",
     "jszip": "^3.10.1",
@@ -37,12 +40,15 @@
     "@types/node": "^25.0.3",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "canvas": "^3.2.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "16.1.1",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-singlefile": "^2.3.0"
   }
 }
