@@ -1,0 +1,202 @@
+{
+  "recipe": {
+    "title": "Savoury Feta, Courgette & Pepper Muffins",
+    "servings": 12,
+    "equipment": [
+      "🧁 12-hole muffin tin",
+      "📄 Paper muffin cases",
+      "🥣 Large mixing bowl",
+      "🥣 Medium mixing bowl",
+      "🍳 Box grater",
+      "🔪 Sharp knife",
+      "🪒 Chopping board",
+      "🥄 Wooden spoon or spatula",
+      "🧽 Clean tea towel",
+      "🌡️ Oven"
+    ],
+    "flowGroups": [
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🌡️ Oven", "🧁 12-hole muffin tin", "📄 Paper muffin cases"],
+            "stepNumber": 1,
+            "ingredients": [],
+            "instruction": "Preheat your oven to 190°C (170°C fan / Gas Mark 5). Line a 12-hole muffin tin with paper cases.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🍳 Box grater", "🧽 Clean tea towel"],
+            "stepNumber": 2,
+            "ingredients": ["🥒 1 medium courgette (approx. 200g), grated"],
+            "instruction": "Grate the courgette using the coarse side of a box grater. Place in a clean tea towel and squeeze firmly to remove excess moisture — this is crucial for fluffy muffins.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🔪 Sharp knife", "🪒 Chopping board"],
+            "stepNumber": 3,
+            "ingredients": [
+              "🫑 1 red pepper, finely diced",
+              "🫑 1 yellow pepper, finely diced",
+              "🧅 3 spring onions, finely sliced",
+              "🧄 1 clove garlic, minced"
+            ],
+            "instruction": "Finely dice the red and yellow peppers into small cubes (about 5mm). Finely slice the spring onions and mince the garlic.",
+            "timerMinutes": 0
+          },
+          {
+            "type": "prep",
+            "equipment": [],
+            "stepNumber": 4,
+            "ingredients": ["🧀 150g feta cheese, crumbled"],
+            "instruction": "Crumble the feta cheese into rough chunks — some smaller crumbles and some larger pieces give nice texture throughout.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": true
+      },
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🥣 Large mixing bowl"],
+            "stepNumber": 5,
+            "ingredients": [
+              "🫘 100g gram flour (chickpea flour)",
+              "🌾 150g spelt flour",
+              "🥄 1½ tsp baking powder",
+              "🥄 ½ tsp bicarbonate of soda",
+              "🧂 1 tsp salt",
+              "⚫ ½ tsp black pepper"
+            ],
+            "instruction": "In a large bowl, whisk together the gram flour, spelt flour, baking powder, bicarbonate of soda, salt, and black pepper until well combined.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🥣 Large mixing bowl", "🥄 Wooden spoon or spatula"],
+            "stepNumber": 6,
+            "ingredients": [
+              "🥒 1 medium courgette (approx. 200g), grated",
+              "🫑 1 red pepper, finely diced",
+              "🫑 1 yellow pepper, finely diced",
+              "🧅 3 spring onions, finely sliced",
+              "🧄 1 clove garlic, minced",
+              "🧀 150g feta cheese, crumbled",
+              "🌿 2 tbsp fresh dill, chopped (or 1 tsp dried)"
+            ],
+            "instruction": "Add the squeezed courgette, diced peppers, spring onions, garlic, most of the feta (reserve a little for topping), and chopped dill to the dry ingredients. Toss gently to coat the vegetables in flour.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🥣 Medium mixing bowl"],
+            "stepNumber": 7,
+            "ingredients": [
+              "🥚 2 large eggs",
+              "🥛 120ml milk",
+              "🫒 60ml olive oil",
+              "🧈 30g butter, melted"
+            ],
+            "instruction": "In a medium bowl, whisk together the eggs, milk, olive oil, and melted butter until smooth.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🥄 Wooden spoon or spatula"],
+            "stepNumber": 8,
+            "ingredients": [],
+            "instruction": "Pour the wet ingredients into the dry mixture. Fold gently until just combined — a few lumps are fine. Overmixing will make the muffins dense.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "prep",
+            "equipment": ["🧁 12-hole muffin tin"],
+            "stepNumber": 9,
+            "ingredients": [],
+            "instruction": "Divide the batter evenly among the 12 muffin cases, filling each about ¾ full. Top with the reserved feta crumbles.",
+            "timerMinutes": 0
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "cook",
+            "equipment": ["🌡️ Oven"],
+            "stepNumber": 10,
+            "ingredients": [],
+            "instruction": "Bake in the preheated oven for 22-25 minutes, until golden on top and a skewer inserted into the centre comes out clean.",
+            "timerMinutes": 23
+          }
+        ],
+        "parallel": false
+      },
+      {
+        "steps": [
+          {
+            "type": "rest",
+            "equipment": [],
+            "stepNumber": 11,
+            "ingredients": [],
+            "instruction": "Allow the muffins to cool in the tin for 5 minutes before transferring to a wire rack. Delicious warm or at room temperature.",
+            "timerMinutes": 5
+          }
+        ],
+        "parallel": false
+      }
+    ],
+    "ingredients": [
+      "🫘 100g gram flour (chickpea flour)",
+      "🌾 150g spelt flour",
+      "🧀 150g feta cheese, crumbled",
+      "🥒 1 medium courgette (approx. 200g), grated",
+      "🫑 1 red pepper, finely diced",
+      "🫑 1 yellow pepper, finely diced",
+      "🥚 2 large eggs",
+      "🥛 120ml milk",
+      "🫒 60ml olive oil",
+      "🧈 30g butter, melted",
+      "🧅 3 spring onions, finely sliced",
+      "🧄 1 clove garlic, minced",
+      "🌿 2 tbsp fresh dill, chopped (or 1 tsp dried)",
+      "🧂 1 tsp salt",
+      "⚫ ½ tsp black pepper",
+      "🥄 1½ tsp baking powder",
+      "🥄 ½ tsp bicarbonate of soda"
+    ]
+  }
+}

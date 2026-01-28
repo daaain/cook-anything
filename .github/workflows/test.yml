@@ -20,6 +20,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build MCP UI
+        run: bun run build:mcp
+
       - name: Run checks
         run: bun run check
 

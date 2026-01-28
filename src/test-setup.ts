@@ -142,7 +142,7 @@ const originalGetContext = (
   Canvas.prototype as {
     getContext: (type: string, options?: unknown) => CanvasRenderingContext2D | null;
   }
-).getContext = function (type: string, _options?: unknown) {
+).getContext = function (type: string) {
   const ctx = originalGetContext.call(this, type) as CanvasRenderingContext2D & {
     drawImage: (image: TestImage | CanvasImage, ...args: number[]) => void;
   };
