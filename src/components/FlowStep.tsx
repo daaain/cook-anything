@@ -13,23 +13,23 @@ interface FlowStepProps {
 
 const typeConfig = {
   prep: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    badge: 'bg-blue-100 text-blue-700',
+    bg: 'bg-blue-50 dark:bg-blue-900/30',
+    border: 'border-blue-200 dark:border-blue-800',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
     icon: Scissors,
     label: 'Prep',
   },
   cook: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-200',
-    badge: 'bg-orange-100 text-orange-700',
+    bg: 'bg-orange-50 dark:bg-orange-900/30',
+    border: 'border-orange-200 dark:border-orange-800',
+    badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
     icon: Flame,
     label: 'Cook',
   },
   rest: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-200',
-    badge: 'bg-purple-100 text-purple-700',
+    bg: 'bg-purple-50 dark:bg-purple-900/30',
+    border: 'border-purple-200 dark:border-purple-800',
+    badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300',
     icon: Clock,
     label: 'Rest',
   },
@@ -43,14 +43,16 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
   return (
     <div className="relative">
       {/* Connector Line */}
-      {showConnector && <div className="absolute left-6 -top-3 w-0.5 h-3 bg-gray-300" />}
+      {showConnector && (
+        <div className="absolute left-6 -top-3 w-0.5 h-3 bg-gray-300 dark:bg-gray-600" />
+      )}
 
       <div className={`${config.bg} ${config.border} border rounded-xl overflow-hidden`}>
         {/* Header - Always visible, clickable */}
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center gap-2 sm:gap-3 p-3 sm:p-4 text-left hover:bg-white/50 transition-colors min-w-0"
+          className="w-full flex items-center gap-2 sm:gap-3 p-3 sm:p-4 text-left hover:bg-white/50 dark:hover:bg-white/10 transition-colors min-w-0"
         >
           {/* Step Number */}
           <div
@@ -69,18 +71,20 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
 
           {/* Brief instruction preview when collapsed */}
           {!isExpanded && (
-            <p className="flex-1 text-sm text-gray-600 truncate min-w-0">{step.instruction}</p>
+            <p className="flex-1 text-sm text-gray-600 dark:text-gray-300 truncate min-w-0">
+              {step.instruction}
+            </p>
           )}
 
           {/* Timer badge if applicable */}
           {step.timerMinutes > 0 && (
-            <span className="text-xs text-gray-500 bg-white/50 px-2 py-1 rounded-full shrink-0 whitespace-nowrap">
+            <span className="text-xs text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-black/20 px-2 py-1 rounded-full shrink-0 whitespace-nowrap">
               {step.timerMinutes} min
             </span>
           )}
 
           {/* Expand/Collapse indicator */}
-          <div className="text-gray-400 shrink-0">
+          <div className="text-gray-400 dark:text-gray-500 shrink-0">
             {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </div>
         </button>
@@ -89,7 +93,7 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
         {isExpanded && (
           <div className="px-4 pb-4 space-y-3">
             {/* Full Instruction */}
-            <p className="text-gray-700 leading-relaxed">{step.instruction}</p>
+            <p className="text-gray-700 dark:text-gray-200 leading-relaxed">{step.instruction}</p>
 
             {/* Ingredients */}
             {step.ingredients.length > 0 && (
@@ -97,7 +101,7 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
                 {step.ingredients.map((ingredient) => (
                   <span
                     key={ingredient}
-                    className="inline-block px-2 py-1 bg-white/70 rounded-full text-center text-s text-gray-600 border border-gray-200"
+                    className="inline-block px-2 py-1 bg-white/70 dark:bg-gray-800/70 rounded-full text-center text-s text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
                   >
                     {ingredient}
                   </span>
@@ -111,7 +115,7 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
                 {step.equipment.map((item) => (
                   <span
                     key={item}
-                    className="inline-block px-2 py-1 bg-emerald-50 rounded-full text-center text-s text-emerald-700 border border-emerald-200"
+                    className="inline-block px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-center text-s text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                   >
                     {item}
                   </span>

@@ -163,11 +163,25 @@ function ClaudeRecipeFlow() {
   // Apply host styles (theme, fonts)
   useHostStyleVariables(app, app?.getHostContext());
 
+  // Also apply dark class for Tailwind dark mode support
+  useEffect(() => {
+    if (app) {
+      const context = app.getHostContext();
+      if (context?.theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [app]);
+
   if (connectionError) {
     return (
       <div className="p-6 text-center">
-        <div className="text-red-600 font-medium">Connection Error</div>
-        <div className="text-gray-600 text-sm mt-2">{connectionError.message}</div>
+        <div className="text-red-600 dark:text-red-400 font-medium">Connection Error</div>
+        <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+          {connectionError.message}
+        </div>
       </div>
     );
   }
@@ -175,7 +189,7 @@ function ClaudeRecipeFlow() {
   if (!isConnected) {
     return (
       <div className="p-6 text-center">
-        <div className="text-gray-600">Connecting to host...</div>
+        <div className="text-gray-600 dark:text-gray-400">Connecting to host...</div>
       </div>
     );
   }
@@ -183,8 +197,8 @@ function ClaudeRecipeFlow() {
   if (state.error) {
     return (
       <div className="p-6 text-center">
-        <div className="text-red-600 font-medium">Error</div>
-        <div className="text-gray-600 text-sm mt-2">{state.error}</div>
+        <div className="text-red-600 dark:text-red-400 font-medium">Error</div>
+        <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">{state.error}</div>
       </div>
     );
   }
@@ -196,8 +210,8 @@ function ClaudeRecipeFlow() {
   // Idle state - waiting for a recipe
   return (
     <div className="p-6 text-center">
-      <div className="text-lg font-medium text-gray-700">Recipe Flow</div>
-      <div className="text-gray-500 mt-2 text-sm">
+      <div className="text-lg font-medium text-gray-700 dark:text-gray-200">Recipe Flow</div>
+      <div className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
         Ask Claude to create a recipe to see an interactive cooking flowchart.
       </div>
     </div>
@@ -233,7 +247,7 @@ export function RecipeFlowApp() {
   if (!isClient) {
     return (
       <div className="p-6 text-center">
-        <div className="text-gray-600">Loading...</div>
+        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
       </div>
     );
   }
