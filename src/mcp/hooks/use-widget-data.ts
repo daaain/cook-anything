@@ -102,20 +102,18 @@ function useClaudeWidgetData<T>(): UnifiedWidgetData<T> {
   const handleAppCreated = useCallback(
     (app: Parameters<NonNullable<Parameters<typeof useApp>[0]['onAppCreated']>>[0]) => {
       // Handle tool input - receives the tool arguments
+      // Return the whole arguments object for consistency with ChatGPT path
       app.ontoolinput = (params) => {
-        const args = params.arguments as { recipe?: T };
-        if (args.recipe) {
-          setData(args.recipe as T);
+        if (params.arguments) {
+          setData(params.arguments as T);
         }
       };
 
       // Handle tool result - receives the structured content
+      // Return the whole structuredContent object for consistency with ChatGPT path
       app.ontoolresult = (params) => {
         if (params.structuredContent) {
-          const content = params.structuredContent as { recipe?: T };
-          if (content.recipe) {
-            setData(content.recipe as T);
-          }
+          setData(params.structuredContent as T);
         }
       };
 
