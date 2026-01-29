@@ -60,32 +60,32 @@ function CollapsibleSection({
   if (items.length === 0) return null;
 
   return (
-    <div className="border border-emerald-200 rounded-lg overflow-hidden">
+    <div className="border border-emerald-200 dark:border-emerald-800 rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 p-3 bg-emerald-50 hover:bg-emerald-100 transition-colors text-left"
+        className="w-full flex items-center gap-2 p-3 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 transition-colors text-left"
       >
-        <div className="flex items-center gap-2 text-emerald-700">
+        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
           {icon}
           <span className="font-medium">{title}</span>
         </div>
-        <span className="text-sm text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+        <span className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">
           {items.length}
         </span>
         <div className="flex-1" />
-        <div className="text-emerald-600">
+        <div className="text-emerald-600 dark:text-emerald-400">
           {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </div>
       </button>
 
       {isExpanded && (
-        <div className="p-3 bg-white">
+        <div className="p-3 bg-white dark:bg-gray-800">
           <div className="flex flex-wrap gap-2">
             {items.map((item) => (
               <span
                 key={item}
-                className="inline-block px-3 py-1.5 bg-emerald-50 rounded-full text-sm text-emerald-700 border border-emerald-200"
+                className="inline-block px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-sm text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
               >
                 {item}
               </span>
@@ -107,8 +107,8 @@ export function MiseEnPlace({ recipe }: MiseEnPlaceProps) {
 
   return (
     <div className="mb-6 space-y-2">
-      <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
-        <ChefHat className="w-5 h-5 text-emerald-600" />
+      <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+        <ChefHat className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
         Mise en Place
       </h2>
       <div className="space-y-2">

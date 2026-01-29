@@ -2,7 +2,7 @@
  * MCP server for Recipe Flow app.
  *
  * Provides a single tool to display recipes as interactive flowcharts.
- * Claude generates the recipe JSON, then calls this tool to display it.
+ * Supports both Claude (via @modelcontextprotocol/ext-apps) and ChatGPT (via skybridge).
  */
 
 import { z } from 'zod';
@@ -10,6 +10,33 @@ import { type FlowGroupSchema, RecipeSchema } from '@/lib/recipe';
 import { McpServer, RESOURCE_MIME_TYPE, registerAppResource, registerAppTool } from './mcp-sdk';
 
 const UI_RESOURCE_URI = 'ui://recipe-flow/app.html';
+
+// Note: ChatGPT uses 'text/html+skybridge' MIME type for widget rendering.
+// We use RESOURCE_MIME_TYPE from @modelcontextprotocol/ext-apps which should be compatible.
+
+/**
+ * OpenAI-specific metadata for tools.
+ * These fields enable proper widget rendering in ChatGPT.
+ */
+const OPENAI_TOOL_META = {
+  'openai/outputTemplate': UI_RESOURCE_URI,
+  'openai/toolInvocation/invoking': 'Preparing your recipe flowchart...',
+  'openai/toolInvocation/invoked': 'Recipe flowchart ready!',
+  'openai/widgetAccessible': true,
+} as const;
+
+/**
+ * OpenAI-specific annotations for tools.
+ * These control elicitation behavior in ChatGPT.
+ */
+const OPENAI_TOOL_ANNOTATIONS = {
+  // This is a read-only display tool - no side effects
+  readOnlyHint: true,
+  // The tool operates on bounded input (recipe data)
+  openWorldHint: false,
+  // The tool is not destructive
+  destructiveHint: false,
+} as const;
 
 // Will be populated by the build process
 let bundledHtml = '';
@@ -73,7 +100,7 @@ export function createRecipeFlowServer(): McpServer {
   });
 
   // Single tool: Show Recipe
-  // Claude generates the recipe, then calls this to display it
+  // The LLM generates the recipe, then calls this to display it
   registerAppTool(
     server,
     'show-recipe',
@@ -90,7 +117,15 @@ Use this tool AFTER generating a complete recipe in the required JSON format. Th
 
 When the user asks for a recipe, first generate the complete recipe JSON following the schema, then call this tool with it.`,
       inputSchema: ShowRecipeInputSchema,
-      _meta: { ui: { resourceUri: UI_RESOURCE_URI } },
+      // Combined metadata for both Claude and ChatGPT
+      _meta: {
+        // Claude's MCP ext-apps format
+        ui: { resourceUri: UI_RESOURCE_URI },
+        // OpenAI/ChatGPT format
+        ...OPENAI_TOOL_META,
+      },
+      // OpenAI annotations for elicitation control
+      annotations: OPENAI_TOOL_ANNOTATIONS,
     },
     async (args) => {
       const { recipe } = args;
@@ -112,11 +147,19 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
           mode: 'viewing',
           recipe,
         },
+        // Include OpenAI invocation metadata in response
+        _meta: {
+          'openai/toolInvocation/invoking': OPENAI_TOOL_META['openai/toolInvocation/invoking'],
+          'openai/toolInvocation/invoked': OPENAI_TOOL_META['openai/toolInvocation/invoked'],
+        },
       };
     },
   );
 
   // Register the HTML UI resource
+  // Uses RESOURCE_MIME_TYPE for Claude compatibility while including OpenAI metadata
+  // Note: ChatGPT uses text/html+skybridge, Claude uses the ext-apps MIME type
+  // Both should be compatible with the standard MCP resource format
   registerAppResource(
     server,
     'Recipe Flow UI',
@@ -124,6 +167,8 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
     {
       mimeType: RESOURCE_MIME_TYPE,
       description: 'Interactive cooking flowchart viewer with timers and step tracking',
+      // Include OpenAI metadata for ChatGPT discovery
+      _meta: OPENAI_TOOL_META,
     },
     async () => ({
       contents: [
@@ -131,6 +176,7 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
           uri: UI_RESOURCE_URI,
           mimeType: RESOURCE_MIME_TYPE,
           text: bundledHtml || getPlaceholderHtml(),
+          _meta: OPENAI_TOOL_META,
         },
       ],
     }),
