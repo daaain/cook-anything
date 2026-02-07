@@ -24,7 +24,7 @@ shell:
 
 # Run bun commands inside container
 bun *args:
-    docker compose exec app bun {{args}}
+    docker compose exec app bun {{ args }}
 
 # View container logs
 logs:
@@ -36,8 +36,16 @@ clean:
 
 # Run with OAuth token (pass as argument)
 dev-oauth token:
-    CLAUDE_CODE_OAUTH_TOKEN={{token}} docker compose up -d
+    CLAUDE_CODE_OAUTH_TOKEN={{ token }} docker compose up -d
 
 # Check if Claude CLI is working in container
 check-claude:
     docker compose exec app bunx @anthropic-ai/claude-code --version
+
+# Run e2e tests with recorded fixtures (no LLM needed)
+e2e *args:
+    bunx playwright test {{ args }}
+
+# Run e2e tests with real Claude API (records fixtures for replay)
+e2e-live *args:
+    E2E=true bunx playwright test {{ args }}

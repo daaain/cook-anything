@@ -28,3 +28,9 @@ jobs:
 
       - name: Run tests
         run: bun run test
+
+      - name: Install Playwright browser
+        run: playwright install-deps chromium
+
+      - name: Run e2e tests
+        run: just e2e
