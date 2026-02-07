@@ -66,17 +66,27 @@ export const RecipeResponseSchema = z.object({
 // z.discriminatedUnion/z.union produce `oneOf`/`anyOf` at root level without `type: "object"`,
 // which the Anthropic API requires for tool input schemas. Flattening with optional fields
 // avoids this while keeping the model output simple (no nesting).
-export const ProcessResponseSchema = z.object({
-  type: z.enum(['clarifying_questions', 'recipe']).describe('Response type'),
-  questions: z
-    .array(ClarifyingQuestionSchema)
-    .min(1)
-    .max(5)
-    .optional()
-    .describe('Clarifying questions (present when type is "clarifying_questions")'),
-  context: z.string().optional().describe('Brief explanation of why questions are needed'),
-  recipe: RecipeSchema.optional().describe('The recipe (present when type is "recipe")'),
-});
+export const ProcessResponseSchema = z
+  .object({
+    type: z.enum(['clarifying_questions', 'recipe']).describe('Response type'),
+    questions: z
+      .array(ClarifyingQuestionSchema)
+      .min(1)
+      .max(5)
+      .optional()
+      .describe('Clarifying questions (present when type is "clarifying_questions")'),
+    context: z.string().optional().describe('Brief explanation of why questions are needed'),
+    recipe: RecipeSchema.optional().describe('The recipe (present when type is "recipe")'),
+  })
+  .refine(
+    (d) =>
+      (d.type === 'clarifying_questions' && d.questions !== undefined) ||
+      (d.type === 'recipe' && d.recipe !== undefined),
+    {
+      message:
+        'questions must be present for clarifying_questions, recipe must be present for recipe',
+    },
+  );
 
 // Infer TypeScript types from Zod schemas
 export type Step = z.infer<typeof StepSchema>;

@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:3421';
-
 test.describe('process-recipe API', () => {
   test.skip(!process.env.E2E, 'Set E2E=true to run');
 
@@ -16,7 +14,7 @@ test.describe('process-recipe API', () => {
   test('simple recipe returns valid structured output', async ({ request }) => {
     const oauthToken = requireToken();
 
-    const response = await request.post(`${BASE_URL}/api/process-recipe`, {
+    const response = await request.post(`/api/process-recipe`, {
       data: {
         instructions: 'Simple buttered toast',
         model: 'haiku',
@@ -56,7 +54,7 @@ test.describe('process-recipe API', () => {
   test('vague request with clarifying questions enabled', async ({ request }) => {
     const oauthToken = requireToken();
 
-    const response = await request.post(`${BASE_URL}/api/process-recipe`, {
+    const response = await request.post(`/api/process-recipe`, {
       data: {
         instructions: 'something with chicken',
         model: 'haiku',
@@ -92,7 +90,7 @@ test.describe('process-recipe API', () => {
   });
 
   test('validation error for empty request', async ({ request }) => {
-    const response = await request.post(`${BASE_URL}/api/process-recipe`, {
+    const response = await request.post(`/api/process-recipe`, {
       data: {
         images: [],
         instructions: '',

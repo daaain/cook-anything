@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { z } from 'zod';
 import {
   buildUserPrompt,
   ClarifyingQuestionSchema,
@@ -192,9 +193,8 @@ describe('Clarifying Questions Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should produce JSON Schema with top-level type field (Claude API requirement)', async () => {
-      const { asSchema } = await import('@ai-sdk/provider-utils');
-      const jsonSchema = await asSchema(ProcessResponseSchema).jsonSchema;
+    it('should produce JSON Schema with top-level type field (Claude API requirement)', () => {
+      const jsonSchema = z.toJSONSchema(ProcessResponseSchema);
       expect(jsonSchema.type).toBe('object');
     });
   });

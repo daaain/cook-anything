@@ -1,14 +1,15 @@
 import {
   type AssistantModelMessage,
-  generateText,
   type ImagePart,
   type ModelMessage,
   Output,
+  streamText,
   type TextPart,
   type UserModelMessage,
 } from 'ai';
 import { createClaudeCode } from 'ai-sdk-provider-claude-code';
 import { type NextRequest, NextResponse } from 'next/server';
+import { isVercel } from '@/lib/env';
 import {
   buildUserPrompt,
   CLARIFYING_QUESTIONS_PROMPT,
@@ -23,14 +24,19 @@ import type { ProcessRecipeRequest, Recipe } from '@/lib/types';
 function createClaudeProvider(oauthToken?: string) {
   return createClaudeCode({
     defaultSettings: {
+      maxThinkingTokens: 1024,
+      maxTurns: 1,
+      allowedTools: [],
+      persistSession: !isVercel,
       streamingInput: 'always',
       stderr: (data: string) => {
         console.error('[Claude CLI stderr]:', data);
       },
       env: {
-        // Set config dir to /tmp for serverless environments (Vercel)
-        CLAUDE_CONFIG_DIR: '/tmp/.claude',
-        HOME: '/tmp',
+        ...(isVercel && {
+          CLAUDE_CONFIG_DIR: '/tmp/.claude',
+          HOME: '/tmp',
+        }),
         ...(oauthToken && {
           CLAUDE_CODE_OAUTH_TOKEN: oauthToken,
         }),
@@ -136,17 +142,20 @@ export async function POST(request: NextRequest) {
       : SYSTEM_PROMPT;
 
     if (shouldAllowQuestions) {
-      // Use discriminated union schema that allows either questions or recipe
-      const { output } = await generateText({
+      // Use flat schema that allows either questions or recipe.
+      // streamText + Output.object() is used because streamObject is deprecated in
+      // AI SDK v6. Both use the same doStream path underneath (capturing
+      // input_json_delta events from the StructuredOutput tool), but streamText
+      // provides onFinish/onError callbacks for better diagnostics.
+      const result = streamText({
         model: provider(model),
-        output: Output.object({
-          schema: ProcessResponseSchema,
-        }),
+        output: Output.object({ schema: ProcessResponseSchema }),
         system: systemPrompt,
         messages,
       });
+      const object = await result.output;
 
-      const response = output as ProcessResponse;
+      const response = object as ProcessResponse;
 
       if (response.type === 'clarifying_questions') {
         return NextResponse.json({
@@ -169,14 +178,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Standard recipe generation (no questions allowed or answers already provided)
-    const { output: recipe } = await generateText({
+    const recipeResult = streamText({
       model: provider(model),
-      output: Output.object({
-        schema: RecipeSchema,
-      }),
+      output: Output.object({ schema: RecipeSchema }),
       system: systemPrompt,
       messages,
     });
+    const recipe = await recipeResult.output;
 
     // Include the settings used to create this recipe
     const recipeWithSettings: Recipe = {
