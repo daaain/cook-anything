@@ -6,15 +6,17 @@
  */
 
 import { z } from 'zod';
-import { BASE_URL } from '@/lib/env';
+import { getBaseUrl } from '@/lib/env';
 import { type FlowGroupSchema, RecipeSchema } from '@/lib/recipe';
 import { McpServer, registerAppResource, registerAppTool } from './mcp-sdk';
 
 /**
- * URL to the MCP UI page served by Next.js.
- * This avoids inline scripts which are blocked by ChatGPT's CSP.
+ * Get the URL to the MCP UI page served by Next.js.
+ * Computed at runtime to get the correct Vercel deployment URL.
  */
-const MCP_UI_URL = `${BASE_URL}/mcp-ui`;
+function getMcpUiUrl(): string {
+  return `${getBaseUrl()}/mcp-ui`;
+}
 
 /**
  * Resource URI for the MCP ext-apps protocol (Claude).
@@ -29,16 +31,17 @@ const UI_RESOURCE_URI = 'ui://recipe-flow/app.html';
 const WIDGET_MIME_TYPE = 'text/html+skybridge';
 
 /**
- * OpenAI-specific metadata for tools.
- * These fields enable proper widget rendering in ChatGPT.
- * Uses the HTTP URL directly so ChatGPT can fetch the page externally.
+ * Get OpenAI-specific metadata for tools.
+ * Computed at runtime to get the correct Vercel deployment URL.
  */
-const OPENAI_TOOL_META = {
-  'openai/outputTemplate': MCP_UI_URL,
-  'openai/toolInvocation/invoking': 'Preparing your recipe flowchart...',
-  'openai/toolInvocation/invoked': 'Recipe flowchart ready!',
-  'openai/widgetAccessible': true,
-} as const;
+function getOpenAiToolMeta() {
+  return {
+    'openai/outputTemplate': getMcpUiUrl(),
+    'openai/toolInvocation/invoking': 'Preparing your recipe flowchart...',
+    'openai/toolInvocation/invoked': 'Recipe flowchart ready!',
+    'openai/widgetAccessible': true,
+  } as const;
+}
 
 /**
  * OpenAI-specific annotations for tools.
@@ -118,8 +121,8 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
       _meta: {
         // Claude's MCP ext-apps format
         ui: { resourceUri: UI_RESOURCE_URI },
-        // OpenAI/ChatGPT format
-        ...OPENAI_TOOL_META,
+        // OpenAI/ChatGPT format - computed at runtime for correct Vercel URL
+        ...getOpenAiToolMeta(),
       },
       // OpenAI annotations for elicitation control
       annotations: OPENAI_TOOL_ANNOTATIONS,
@@ -132,6 +135,9 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
         (sum: number, group: z.infer<typeof FlowGroupSchema>) => sum + group.steps.length,
         0,
       );
+
+      // Get OpenAI metadata at runtime for correct URL
+      const openAiMeta = getOpenAiToolMeta();
 
       return {
         content: [
@@ -146,8 +152,8 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
         },
         // Include OpenAI invocation metadata in response
         _meta: {
-          'openai/toolInvocation/invoking': OPENAI_TOOL_META['openai/toolInvocation/invoking'],
-          'openai/toolInvocation/invoked': OPENAI_TOOL_META['openai/toolInvocation/invoked'],
+          'openai/toolInvocation/invoking': openAiMeta['openai/toolInvocation/invoking'],
+          'openai/toolInvocation/invoked': openAiMeta['openai/toolInvocation/invoked'],
         },
       };
     },
@@ -162,8 +168,8 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
     {
       mimeType: WIDGET_MIME_TYPE,
       description: 'Interactive cooking flowchart viewer with timers and step tracking',
-      // Include OpenAI metadata for ChatGPT discovery
-      _meta: OPENAI_TOOL_META,
+      // Include OpenAI metadata for ChatGPT discovery - computed at runtime
+      _meta: getOpenAiToolMeta(),
     },
     async () => ({
       contents: [
@@ -173,7 +179,7 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
           // Return an iframe that loads the Next.js page.
           // This avoids inline scripts which are blocked by CSP.
           text: getIframeHtml(),
-          _meta: OPENAI_TOOL_META,
+          _meta: getOpenAiToolMeta(),
         },
       ],
     }),
@@ -187,6 +193,7 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
  * This approach avoids inline scripts which are blocked by ChatGPT's CSP.
  */
 function getIframeHtml(): string {
+  const mcpUiUrl = getMcpUiUrl();
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -200,7 +207,7 @@ function getIframeHtml(): string {
   </style>
 </head>
 <body>
-  <iframe src="${MCP_UI_URL}" allow="autoplay"></iframe>
+  <iframe src="${mcpUiUrl}" allow="autoplay"></iframe>
 </body>
 </html>`;
 }
