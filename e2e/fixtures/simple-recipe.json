@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "recipe": {
+    "title": "Simple Buttered Toast",
+    "servings": 4,
+    "ingredients": [
+      "🍞 120g bread (4 slices)",
+      "🧈 40g butter, softened",
+      "🧂 Salt to taste"
+    ],
+    "equipment": [
+      "🔥 Toaster or oven",
+      "🔪 Butter knife",
+      "🍽️ Plate"
+    ],
+    "flowGroups": [
+      {
+        "parallel": false,
+        "steps": [
+          {
+            "stepNumber": 1,
+            "type": "cook",
+            "instruction": "Toast the bread until golden brown and crispy.",
+            "ingredients": [
+              "🍞 120g bread (4 slices)"
+            ],
+            "equipment": [
+              "🔥 Toaster or oven"
+            ],
+            "timerMinutes": 3
+          },
+          {
+            "stepNumber": 2,
+            "type": "prep",
+            "instruction": "Spread 10g softened butter on each warm slice of toast. Season with salt to taste if desired.",
+            "ingredients": [
+              "🧈 40g butter, softened",
+              "🧂 Salt to taste"
+            ],
+            "equipment": [
+              "🔪 Butter knife"
+            ],
+            "timerMinutes": 0
+          }
+        ]
+      }
+    ],
+    "measureSystem": "metric",
+    "servingsCount": 4
+  }
+}
