@@ -37,6 +37,11 @@ yarn-error.log*
 # turbo
 .turbo
 
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 # MCP bundled UI (generated)
 src/lib/mcp/bundled-ui.ts
 src/lib/mcp/dist/

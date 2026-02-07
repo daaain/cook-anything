@@ -147,8 +147,8 @@ describe('Clarifying Questions Schemas', () => {
     });
   });
 
-  describe('ProcessResponseSchema (discriminated union)', () => {
-    it('should correctly discriminate clarifying_questions type', () => {
+  describe('ProcessResponseSchema (flat object)', () => {
+    it('should accept a clarifying_questions response', () => {
       const response = {
         type: 'clarifying_questions' as const,
         questions: [
@@ -162,12 +162,12 @@ describe('Clarifying Questions Schemas', () => {
 
       const result = ProcessResponseSchema.safeParse(response);
       expect(result.success).toBe(true);
-      if (result.success && result.data.type === 'clarifying_questions') {
+      if (result.success) {
         expect(result.data.questions).toHaveLength(1);
       }
     });
 
-    it('should correctly discriminate recipe type', () => {
+    it('should accept a recipe response', () => {
       const response = {
         type: 'recipe' as const,
         recipe: {
@@ -178,19 +178,24 @@ describe('Clarifying Questions Schemas', () => {
 
       const result = ProcessResponseSchema.safeParse(response);
       expect(result.success).toBe(true);
-      if (result.success && result.data.type === 'recipe') {
-        expect(result.data.recipe.title).toBe('Pasta');
+      if (result.success) {
+        expect(result.data.recipe?.title).toBe('Pasta');
       }
     });
 
     it('should reject invalid type', () => {
       const response = {
         type: 'invalid',
-        data: {},
       };
 
       const result = ProcessResponseSchema.safeParse(response);
       expect(result.success).toBe(false);
+    });
+
+    it('should produce JSON Schema with top-level type field (Claude API requirement)', async () => {
+      const { asSchema } = await import('@ai-sdk/provider-utils');
+      const jsonSchema = await asSchema(ProcessResponseSchema).jsonSchema;
+      expect(jsonSchema.type).toBe('object');
     });
   });
 });

@@ -62,10 +62,21 @@ export const RecipeResponseSchema = z.object({
   recipe: RecipeSchema,
 });
 
-export const ProcessResponseSchema = z.discriminatedUnion('type', [
-  ClarifyingQuestionsResponseSchema,
-  RecipeResponseSchema,
-]);
+// Flat schema for AI SDK Output.object() — ensures top-level `type: "object"` in JSON Schema.
+// z.discriminatedUnion/z.union produce `oneOf`/`anyOf` at root level without `type: "object"`,
+// which the Anthropic API requires for tool input schemas. Flattening with optional fields
+// avoids this while keeping the model output simple (no nesting).
+export const ProcessResponseSchema = z.object({
+  type: z.enum(['clarifying_questions', 'recipe']).describe('Response type'),
+  questions: z
+    .array(ClarifyingQuestionSchema)
+    .min(1)
+    .max(5)
+    .optional()
+    .describe('Clarifying questions (present when type is "clarifying_questions")'),
+  context: z.string().optional().describe('Brief explanation of why questions are needed'),
+  recipe: RecipeSchema.optional().describe('The recipe (present when type is "recipe")'),
+});
 
 // Infer TypeScript types from Zod schemas
 export type Step = z.infer<typeof StepSchema>;
@@ -74,7 +85,8 @@ export type RecipeOutput = z.infer<typeof RecipeSchema>;
 export type ClarifyingQuestion = z.infer<typeof ClarifyingQuestionSchema>;
 export type ClarifyingQuestionsResponse = z.infer<typeof ClarifyingQuestionsResponseSchema>;
 export type RecipeResponse = z.infer<typeof RecipeResponseSchema>;
-export type ProcessResponse = z.infer<typeof ProcessResponseSchema>;
+// Discriminated union type for TypeScript type narrowing in downstream code
+export type ProcessResponse = ClarifyingQuestionsResponse | RecipeResponse;
 
 export const CLARIFYING_QUESTIONS_PROMPT = `
 
