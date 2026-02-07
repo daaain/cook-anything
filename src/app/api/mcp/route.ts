@@ -6,26 +6,7 @@
  */
 
 import { WebStandardStreamableHTTPServerTransport } from '@/lib/mcp/mcp-sdk';
-import { createRecipeFlowServer, setBundledHtml } from '@/lib/mcp/server';
-
-// Attempt to load the bundled HTML at module initialization
-// This will be populated by the build process
-async function initBundledHtml() {
-  // Try to import the bundled HTML if it exists
-  try {
-    // Dynamic import to handle the case where the file doesn't exist yet
-    const bundledModule = await import('@/lib/mcp/bundled-ui');
-    if (bundledModule.bundledHtml) {
-      setBundledHtml(bundledModule.bundledHtml);
-    }
-  } catch {
-    // Bundled HTML not available yet - will show placeholder
-    console.warn('MCP app UI not bundled yet. Run `bun run build:mcp` to build.');
-  }
-}
-
-// Initialize on module load
-initBundledHtml();
+import { createRecipeFlowServer } from '@/lib/mcp/server';
 
 // Store active transports by session ID for session management
 const transports = new Map<string, WebStandardStreamableHTTPServerTransport>();

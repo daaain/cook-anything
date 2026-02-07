@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { z } from 'zod';
 import mcpFixture from '../../../fixtures/mcp-ui-post-body.json';
 import { RecipeSchema } from '../recipe';
-import { createRecipeFlowServer, getBundledHtml, setBundledHtml } from './server';
+import { createRecipeFlowServer } from './server';
 
 // Mock the mcp-sdk module to capture tool and resource registration
 const mockRegisterAppTool = mock(() => {});
@@ -75,8 +75,6 @@ describe('MCP Server', () => {
     capturedToolCallback = null;
     capturedResourceCallback = null;
     capturedServerInfo = null;
-    // Reset bundled HTML state
-    setBundledHtml('');
   });
 
   describe('createRecipeFlowServer', () => {
@@ -145,23 +143,8 @@ describe('MCP Server', () => {
     });
   });
 
-  describe('bundled HTML', () => {
-    it('setBundledHtml updates internal state', () => {
-      const testHtml = '<html><body>Test</body></html>';
-      setBundledHtml(testHtml);
-
-      expect(getBundledHtml()).toBe(testHtml);
-    });
-
-    it('getBundledHtml returns set value', () => {
-      const testHtml = '<html><body>Custom HTML</body></html>';
-      setBundledHtml(testHtml);
-
-      expect(getBundledHtml()).toBe(testHtml);
-    });
-
-    it('placeholder returned when not set', async () => {
-      setBundledHtml('');
+  describe('UI resource', () => {
+    it('returns iframe HTML that embeds the Next.js page', async () => {
       createRecipeFlowServer();
 
       const result = (await callResourceCallback()) as {
@@ -169,20 +152,29 @@ describe('MCP Server', () => {
       };
 
       expect(result.contents).toHaveLength(1);
-      expect(result.contents[0].text).toContain('MCP app UI not yet built');
-      expect(result.contents[0].text).toContain('bun run build:mcp');
+      expect(result.contents[0].text).toContain('<!DOCTYPE html>');
+      expect(result.contents[0].text).toContain('<iframe');
+      expect(result.contents[0].text).toContain('/mcp-ui');
     });
 
-    it('returns bundled HTML when set', async () => {
-      const customHtml = '<!DOCTYPE html><html><body>Recipe App</body></html>';
-      setBundledHtml(customHtml);
+    it('returns correct MIME type', async () => {
       createRecipeFlowServer();
 
       const result = (await callResourceCallback()) as {
         contents: Array<{ uri: string; mimeType: string; text: string }>;
       };
 
-      expect(result.contents[0].text).toBe(customHtml);
+      expect(result.contents[0].mimeType).toBe('text/html+skybridge');
+    });
+
+    it('returns correct resource URI', async () => {
+      createRecipeFlowServer();
+
+      const result = (await callResourceCallback()) as {
+        contents: Array<{ uri: string; mimeType: string; text: string }>;
+      };
+
+      expect(result.contents[0].uri).toBe('ui://recipe-flow/app.html');
     });
   });
 

@@ -27,7 +27,6 @@ function createClaudeProvider(oauthToken?: string) {
       maxThinkingTokens: 1024,
       maxTurns: 1,
       allowedTools: [],
-      persistSession: !isVercel,
       streamingInput: 'always',
       stderr: (data: string) => {
         console.error('[Claude CLI stderr]:', data);

@@ -6,9 +6,19 @@
  */
 
 import { z } from 'zod';
+import { BASE_URL } from '@/lib/env';
 import { type FlowGroupSchema, RecipeSchema } from '@/lib/recipe';
 import { McpServer, registerAppResource, registerAppTool } from './mcp-sdk';
 
+/**
+ * URL to the MCP UI page served by Next.js.
+ * This avoids inline scripts which are blocked by ChatGPT's CSP.
+ */
+const MCP_UI_URL = `${BASE_URL}/mcp-ui`;
+
+/**
+ * Resource URI for the MCP ext-apps protocol (Claude).
+ */
 const UI_RESOURCE_URI = 'ui://recipe-flow/app.html';
 
 /**
@@ -21,9 +31,10 @@ const WIDGET_MIME_TYPE = 'text/html+skybridge';
 /**
  * OpenAI-specific metadata for tools.
  * These fields enable proper widget rendering in ChatGPT.
+ * Uses the HTTP URL directly so ChatGPT can fetch the page externally.
  */
 const OPENAI_TOOL_META = {
-  'openai/outputTemplate': UI_RESOURCE_URI,
+  'openai/outputTemplate': MCP_UI_URL,
   'openai/toolInvocation/invoking': 'Preparing your recipe flowchart...',
   'openai/toolInvocation/invoked': 'Recipe flowchart ready!',
   'openai/widgetAccessible': true,
@@ -41,24 +52,6 @@ const OPENAI_TOOL_ANNOTATIONS = {
   // The tool is not destructive
   destructiveHint: false,
 } as const;
-
-// Will be populated by the build process
-let bundledHtml = '';
-
-/**
- * Set the bundled HTML content for the MCP app UI.
- * Called during build or at runtime to provide the UI HTML.
- */
-export function setBundledHtml(html: string): void {
-  bundledHtml = html;
-}
-
-/**
- * Get the bundled HTML content.
- */
-export function getBundledHtml(): string {
-  return bundledHtml;
-}
 
 // Detailed schema description for Claude to understand the recipe format
 const RECIPE_SCHEMA_DESCRIPTION = `
@@ -177,7 +170,9 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
         {
           uri: UI_RESOURCE_URI,
           mimeType: WIDGET_MIME_TYPE,
-          text: bundledHtml || getPlaceholderHtml(),
+          // Return an iframe that loads the Next.js page.
+          // This avoids inline scripts which are blocked by CSP.
+          text: getIframeHtml(),
           _meta: OPENAI_TOOL_META,
         },
       ],
@@ -188,9 +183,10 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
 }
 
 /**
- * Returns placeholder HTML when the bundled app hasn't been built yet.
+ * Returns HTML that embeds the Next.js MCP UI page via iframe.
+ * This approach avoids inline scripts which are blocked by ChatGPT's CSP.
  */
-function getPlaceholderHtml(): string {
+function getIframeHtml(): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -198,27 +194,13 @@ function getPlaceholderHtml(): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recipe Flow</title>
   <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      background: #f9fafb;
-      color: #374151;
-    }
-    .message {
-      text-align: center;
-      padding: 2rem;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    iframe { width: 100%; height: 100%; border: none; }
   </style>
 </head>
 <body>
-  <div class="message">
-    <h1>Recipe Flow</h1>
-    <p>MCP app UI not yet built. Run <code>bun run build:mcp</code> to build.</p>
-  </div>
+  <iframe src="${MCP_UI_URL}" allow="autoplay"></iframe>
 </body>
 </html>`;
 }

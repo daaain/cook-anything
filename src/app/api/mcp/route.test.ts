@@ -60,7 +60,6 @@ mock.module('@/lib/mcp/server', () => ({
   createRecipeFlowServer: () => ({
     connect: mock(async () => {}),
   }),
-  setBundledHtml: mock(() => {}),
 }));
 
 describe('MCP API Route', () => {
