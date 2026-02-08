@@ -52,7 +52,17 @@ function getOpenAiToolMeta() {
 async function fetchMcpUiHtml(): Promise<string> {
   const url = getMcpUiUrl();
   try {
-    const response = await fetch(url);
+    // Build headers for the fetch request
+    const headers: Record<string, string> = {};
+
+    // Add Vercel protection bypass header for preview deployments
+    // This allows internal fetches to bypass deployment protection
+    const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    if (bypassSecret) {
+      headers['x-vercel-protection-bypass'] = bypassSecret;
+    }
+
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       console.error(`Failed to fetch MCP UI HTML: ${response.status} ${response.statusText}`);
       return getPlaceholderHtml('Failed to load UI');
