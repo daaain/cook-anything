@@ -1,7 +1,10 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
+import { getBaseUrl } from './src/lib/env';
 
 const nextConfig: NextConfig = {
+  // Force assets to load from the correct domain when running in ChatGPT's iframe
+  assetPrefix: getBaseUrl(),
   // Empty turbopack config to allow both build modes (needed while webpack config exists)
   turbopack: {},
   // Headers for MCP UI embedding in ChatGPT and Claude

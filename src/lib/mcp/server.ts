@@ -19,7 +19,8 @@ function getMcpUiUrl(): string {
 }
 
 /**
- * Resource URI for the MCP ext-apps protocol (Claude).
+ * Resource URI for the MCP ext-apps protocol.
+ * Both Claude and ChatGPT use this URI to reference the widget.
  */
 const UI_RESOURCE_URI = 'ui://recipe-flow/app.html';
 
@@ -32,15 +33,73 @@ const WIDGET_MIME_TYPE = 'text/html+skybridge';
 
 /**
  * Get OpenAI-specific metadata for tools.
- * Computed at runtime to get the correct Vercel deployment URL.
+ * Uses the resource URI for outputTemplate - ChatGPT will fetch the HTML from the resource.
  */
 function getOpenAiToolMeta() {
   return {
-    'openai/outputTemplate': getMcpUiUrl(),
+    // Point to the resource URI, not HTTP URL - ChatGPT fetches HTML from the resource
+    'openai/outputTemplate': UI_RESOURCE_URI,
     'openai/toolInvocation/invoking': 'Preparing your recipe flowchart...',
     'openai/toolInvocation/invoked': 'Recipe flowchart ready!',
     'openai/widgetAccessible': true,
   } as const;
+}
+
+/**
+ * Fetch the HTML from the MCP UI page.
+ * This fetches the Next.js rendered page which includes all the ChatGPT SDK bootstrap patches.
+ */
+async function fetchMcpUiHtml(): Promise<string> {
+  const url = getMcpUiUrl();
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Failed to fetch MCP UI HTML: ${response.status} ${response.statusText}`);
+      return getPlaceholderHtml('Failed to load UI');
+    }
+    const html = await response.text();
+    // Wrap in html tags if not already present (Next.js should include them)
+    if (!html.includes('<html')) {
+      return `<html>${html}</html>`;
+    }
+    return html;
+  } catch (error) {
+    console.error('Error fetching MCP UI HTML:', error);
+    return getPlaceholderHtml('Error loading UI');
+  }
+}
+
+/**
+ * Returns placeholder HTML when the MCP UI page cannot be fetched.
+ */
+function getPlaceholderHtml(message: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Flow</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f9fafb;
+      color: #374151;
+    }
+    .message { text-align: center; padding: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="message">
+    <h1>Recipe Flow</h1>
+    <p>${message}</p>
+  </div>
+</body>
+</html>`;
 }
 
 /**
@@ -168,46 +227,24 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
     {
       mimeType: WIDGET_MIME_TYPE,
       description: 'Interactive cooking flowchart viewer with timers and step tracking',
-      // Include OpenAI metadata for ChatGPT discovery - computed at runtime
+      // Include OpenAI metadata for ChatGPT discovery
       _meta: getOpenAiToolMeta(),
     },
-    async () => ({
-      contents: [
-        {
-          uri: UI_RESOURCE_URI,
-          mimeType: WIDGET_MIME_TYPE,
-          // Return an iframe that loads the Next.js page.
-          // This avoids inline scripts which are blocked by CSP.
-          text: getIframeHtml(),
-          _meta: getOpenAiToolMeta(),
-        },
-      ],
-    }),
+    async () => {
+      // Fetch the HTML from the Next.js page (includes ChatGPT SDK bootstrap patches)
+      const html = await fetchMcpUiHtml();
+      return {
+        contents: [
+          {
+            uri: UI_RESOURCE_URI,
+            mimeType: WIDGET_MIME_TYPE,
+            text: html,
+            _meta: getOpenAiToolMeta(),
+          },
+        ],
+      };
+    },
   );
 
   return server;
-}
-
-/**
- * Returns HTML that embeds the Next.js MCP UI page via iframe.
- * This approach avoids inline scripts which are blocked by ChatGPT's CSP.
- */
-function getIframeHtml(): string {
-  const mcpUiUrl = getMcpUiUrl();
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recipe Flow</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    iframe { width: 100%; height: 100%; border: none; }
-  </style>
-</head>
-<body>
-  <iframe src="${mcpUiUrl}" allow="autoplay"></iframe>
-</body>
-</html>`;
 }

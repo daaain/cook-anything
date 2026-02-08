@@ -144,7 +144,7 @@ describe('MCP Server', () => {
   });
 
   describe('UI resource', () => {
-    it('returns iframe HTML that embeds the Next.js page', async () => {
+    it('returns valid HTML content', async () => {
       createRecipeFlowServer();
 
       const result = (await callResourceCallback()) as {
@@ -153,8 +153,8 @@ describe('MCP Server', () => {
 
       expect(result.contents).toHaveLength(1);
       expect(result.contents[0].text).toContain('<!DOCTYPE html>');
-      expect(result.contents[0].text).toContain('<iframe');
-      expect(result.contents[0].text).toContain('/mcp-ui');
+      expect(result.contents[0].text).toContain('<html');
+      expect(result.contents[0].text).toContain('Recipe Flow');
     });
 
     it('returns correct MIME type', async () => {
@@ -175,6 +175,19 @@ describe('MCP Server', () => {
       };
 
       expect(result.contents[0].uri).toBe('ui://recipe-flow/app.html');
+    });
+
+    it('returns placeholder HTML when fetch fails', async () => {
+      // In test environment, fetch to localhost:3000 fails
+      createRecipeFlowServer();
+
+      const result = (await callResourceCallback()) as {
+        contents: Array<{ uri: string; mimeType: string; text: string }>;
+      };
+
+      // Should return placeholder HTML with error message
+      expect(result.contents[0].text).toContain('Recipe Flow');
+      expect(result.contents[0].text).toContain('</html>');
     });
   });
 
