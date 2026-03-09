@@ -9,6 +9,7 @@ build:
 # Start the development server in Docker (detached, use `just logs` to follow)
 dev:
     docker compose up -d
+    just bun build:mcp
 
 # Stop all containers
 stop:

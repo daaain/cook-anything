@@ -46,7 +46,7 @@ mock.module('./mcp-sdk', () => ({
       capturedServerInfo = serverInfo;
     }
   },
-  RESOURCE_MIME_TYPE: 'text/html',
+  RESOURCE_MIME_TYPE: 'text/html;profile=mcp-app',
   registerAppTool: (
     _server: unknown,
     name: string,
@@ -164,7 +164,7 @@ describe('MCP Server', () => {
         contents: Array<{ uri: string; mimeType: string; text: string }>;
       };
 
-      expect(result.contents[0].mimeType).toBe('text/html+skybridge');
+      expect(result.contents[0].mimeType).toBe('text/html;profile=mcp-app');
     });
 
     it('returns correct resource URI', async () => {
@@ -177,16 +177,16 @@ describe('MCP Server', () => {
       expect(result.contents[0].uri).toBe('ui://recipe-flow/app.html');
     });
 
-    it('returns placeholder HTML when fetch fails', async () => {
-      // In test environment, fetch to localhost:3000 fails
+    it('returns placeholder HTML when bundled UI is not set', async () => {
       createRecipeFlowServer();
 
       const result = (await callResourceCallback()) as {
         contents: Array<{ uri: string; mimeType: string; text: string }>;
       };
 
-      // Should return placeholder HTML with error message
+      // Should return placeholder HTML with build instructions
       expect(result.contents[0].text).toContain('Recipe Flow');
+      expect(result.contents[0].text).toContain('build:mcp');
       expect(result.contents[0].text).toContain('</html>');
     });
   });

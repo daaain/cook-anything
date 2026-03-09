@@ -12,7 +12,8 @@ export function getBaseUrl(): string {
   if (typeof window === 'undefined') {
     const vercelEnv = process.env.VERCEL_ENV;
     if (vercelEnv == null || vercelEnv === 'development') {
-      return 'http://localhost:3000';
+      const port = process.env.PORT ?? '3000';
+      return `http://localhost:${port}`;
     }
     if (vercelEnv === 'preview') {
       return `https://${process.env.VERCEL_URL}`;

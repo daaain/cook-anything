@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "bun --bun next dev --webpack",
-    "build": "bun --bun next build",
+    "build": "bun run build:mcp && bun --bun next build",
+    "build:mcp": "bun run scripts/bundle-mcp-ui.ts",
     "start": "bun --bun next start",
     "lint": "bun biome check . && bun eslint .",
     "lint:fix": "bun biome check --write . && bun eslint . --fix",

@@ -6,17 +6,8 @@
  */
 
 import { z } from 'zod';
-import { getBaseUrl } from '@/lib/env';
 import { type FlowGroupSchema, RecipeSchema } from '@/lib/recipe';
-import { McpServer, registerAppResource, registerAppTool } from './mcp-sdk';
-
-/**
- * Get the URL to the MCP UI page served by Next.js.
- * Computed at runtime to get the correct Vercel deployment URL.
- */
-function getMcpUiUrl(): string {
-  return `${getBaseUrl()}/mcp-ui`;
-}
+import { McpServer, RESOURCE_MIME_TYPE, registerAppResource, registerAppTool } from './mcp-sdk';
 
 /**
  * Resource URI for the MCP ext-apps protocol.
@@ -24,12 +15,16 @@ function getMcpUiUrl(): string {
  */
 const UI_RESOURCE_URI = 'ui://recipe-flow/app.html';
 
+// Will be populated by the build process or at runtime
+let bundledHtml = '';
+
 /**
- * MIME type for widget rendering.
- * ChatGPT uses 'text/html+skybridge' to identify HTML content for its sandbox.
- * This is also compatible with Claude's MCP widget system.
+ * Set the bundled HTML content for the MCP app UI.
+ * Called at startup to provide the self-contained UI HTML.
  */
-const WIDGET_MIME_TYPE = 'text/html+skybridge';
+export function setBundledHtml(html: string): void {
+  bundledHtml = html;
+}
 
 /**
  * Get OpenAI-specific metadata for tools.
@@ -37,7 +32,6 @@ const WIDGET_MIME_TYPE = 'text/html+skybridge';
  */
 function getOpenAiToolMeta() {
   return {
-    // Point to the resource URI, not HTTP URL - ChatGPT fetches HTML from the resource
     'openai/outputTemplate': UI_RESOURCE_URI,
     'openai/toolInvocation/invoking': 'Preparing your recipe flowchart...',
     'openai/toolInvocation/invoked': 'Recipe flowchart ready!',
@@ -46,43 +40,9 @@ function getOpenAiToolMeta() {
 }
 
 /**
- * Fetch the HTML from the MCP UI page.
- * This fetches the Next.js rendered page which includes all the ChatGPT SDK bootstrap patches.
+ * Returns placeholder HTML when the bundled app hasn't been built yet.
  */
-async function fetchMcpUiHtml(): Promise<string> {
-  const url = getMcpUiUrl();
-  try {
-    // Build headers for the fetch request
-    const headers: Record<string, string> = {};
-
-    // Add Vercel protection bypass header for preview deployments
-    // This allows internal fetches to bypass deployment protection
-    const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-    if (bypassSecret) {
-      headers['x-vercel-protection-bypass'] = bypassSecret;
-    }
-
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      console.error(`Failed to fetch MCP UI HTML: ${response.status} ${response.statusText}`);
-      return getPlaceholderHtml('Failed to load UI');
-    }
-    const html = await response.text();
-    // Wrap in html tags if not already present (Next.js should include them)
-    if (!html.includes('<html')) {
-      return `<html>${html}</html>`;
-    }
-    return html;
-  } catch (error) {
-    console.error('Error fetching MCP UI HTML:', error);
-    return getPlaceholderHtml('Error loading UI');
-  }
-}
-
-/**
- * Returns placeholder HTML when the MCP UI page cannot be fetched.
- */
-function getPlaceholderHtml(message: string): string {
+function getPlaceholderHtml(): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -106,7 +66,7 @@ function getPlaceholderHtml(message: string): string {
 <body>
   <div class="message">
     <h1>Recipe Flow</h1>
-    <p>${message}</p>
+    <p>MCP app UI not yet built. Run <code>bun run build:mcp</code> to build.</p>
   </div>
 </body>
 </html>`;
@@ -117,11 +77,8 @@ function getPlaceholderHtml(message: string): string {
  * These control elicitation behavior in ChatGPT.
  */
 const OPENAI_TOOL_ANNOTATIONS = {
-  // This is a read-only display tool - no side effects
   readOnlyHint: true,
-  // The tool operates on bounded input (recipe data)
   openWorldHint: false,
-  // The tool is not destructive
   destructiveHint: false,
 } as const;
 
@@ -130,7 +87,7 @@ const RECIPE_SCHEMA_DESCRIPTION = `
 A structured recipe object with the following fields:
 
 - title: string - Recipe name
-- servings: string - Serving description (e.g., "4 servings", "Makes 12 cookies")
+- servings: number - Number of servings (e.g., 4, 12)
 - ingredients: string[] - ALL ingredients with quantities and emoji prefixes (e.g., "🥚 2 large eggs", "🧈 100g butter")
 - equipment: string[] - ALL equipment needed with emoji prefixes (e.g., "🍳 Large frying pan", "🔪 Sharp knife")
 - flowGroups: array of step groups, each containing:
@@ -190,7 +147,7 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
       _meta: {
         // Claude's MCP ext-apps format
         ui: { resourceUri: UI_RESOURCE_URI },
-        // OpenAI/ChatGPT format - computed at runtime for correct Vercel URL
+        // OpenAI/ChatGPT format
         ...getOpenAiToolMeta(),
       },
       // OpenAI annotations for elicitation control
@@ -229,31 +186,25 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
   );
 
   // Register the HTML UI resource
-  // Uses text/html+skybridge MIME type which is recognized by both ChatGPT and Claude
+  // Serves self-contained bundled HTML that works in both Claude and ChatGPT sandboxes
   registerAppResource(
     server,
     'Recipe Flow UI',
     UI_RESOURCE_URI,
     {
-      mimeType: WIDGET_MIME_TYPE,
+      mimeType: RESOURCE_MIME_TYPE,
       description: 'Interactive cooking flowchart viewer with timers and step tracking',
-      // Include OpenAI metadata for ChatGPT discovery
       _meta: getOpenAiToolMeta(),
     },
-    async () => {
-      // Fetch the HTML from the Next.js page (includes ChatGPT SDK bootstrap patches)
-      const html = await fetchMcpUiHtml();
-      return {
-        contents: [
-          {
-            uri: UI_RESOURCE_URI,
-            mimeType: WIDGET_MIME_TYPE,
-            text: html,
-            _meta: getOpenAiToolMeta(),
-          },
-        ],
-      };
-    },
+    async () => ({
+      contents: [
+        {
+          uri: UI_RESOURCE_URI,
+          mimeType: RESOURCE_MIME_TYPE,
+          text: bundledHtml || getPlaceholderHtml(),
+        },
+      ],
+    }),
   );
 
   return server;

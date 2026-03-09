@@ -218,18 +218,25 @@ function ClaudeRecipeFlow() {
   );
 }
 
+// Stable snapshot references for useSyncExternalStore (must return same object
+// reference when value hasn't changed, otherwise React re-renders infinitely).
+const SERVER_SNAPSHOT = { hostType: 'unknown' as HostType, isClient: false };
+let clientSnapshot: { hostType: HostType; isClient: boolean } | null = null;
+
+function getClientSnapshot() {
+  if (!clientSnapshot) {
+    clientSnapshot = { hostType: detectHostType(), isClient: true };
+  }
+  return clientSnapshot;
+}
+
+const noopSubscribe = () => () => {};
+
 /**
  * Hook to detect host type using useSyncExternalStore for SSR safety.
  */
 function useHostDetection(): { hostType: HostType; isClient: boolean } {
-  return useSyncExternalStore(
-    // Subscribe function - no-op since host type doesn't change
-    () => () => {},
-    // Client snapshot
-    () => ({ hostType: detectHostType(), isClient: true as boolean }),
-    // Server snapshot
-    () => ({ hostType: 'unknown' as HostType, isClient: false as boolean }),
-  );
+  return useSyncExternalStore(noopSubscribe, getClientSnapshot, () => SERVER_SNAPSHOT);
 }
 
 /**

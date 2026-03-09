@@ -6,7 +6,21 @@
  */
 
 import { WebStandardStreamableHTTPServerTransport } from '@/lib/mcp/mcp-sdk';
-import { createRecipeFlowServer } from '@/lib/mcp/server';
+import { createRecipeFlowServer, setBundledHtml } from '@/lib/mcp/server';
+
+// Load the bundled MCP UI HTML at module initialization
+async function initBundledHtml() {
+  try {
+    const { bundledHtml } = await import('@/lib/mcp/bundled-ui');
+    if (bundledHtml) {
+      setBundledHtml(bundledHtml);
+    }
+  } catch {
+    console.warn('MCP app UI not bundled yet. Run `bun run build:mcp` to build.');
+  }
+}
+
+initBundledHtml();
 
 // Store active transports by session ID for session management
 const transports = new Map<string, WebStandardStreamableHTTPServerTransport>();
@@ -23,6 +37,23 @@ async function handleMcpRequest(request: Request): Promise<Response> {
     if (existingTransport) {
       return existingTransport.handleRequest(request);
     }
+
+    // Session ID provided but not found — client must reinitialize
+    console.warn(`MCP session not found: ${sessionId} (client needs to reinitialize)`);
+    return new Response(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Session not found. Please reinitialize.',
+        },
+        id: null,
+      }),
+      {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 
   // Create new transport for new sessions
