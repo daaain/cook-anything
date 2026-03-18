@@ -2,39 +2,92 @@
  * MCP server for Recipe Flow app.
  *
  * Provides a single tool to display recipes as interactive flowcharts.
- * Claude generates the recipe JSON, then calls this tool to display it.
+ * Supports both Claude (via @modelcontextprotocol/ext-apps) and ChatGPT (via skybridge).
  */
 
 import { z } from 'zod';
 import { type FlowGroupSchema, RecipeSchema } from '@/lib/recipe';
 import { McpServer, RESOURCE_MIME_TYPE, registerAppResource, registerAppTool } from './mcp-sdk';
 
+/**
+ * Resource URI for the MCP ext-apps protocol.
+ * Both Claude and ChatGPT use this URI to reference the widget.
+ */
 const UI_RESOURCE_URI = 'ui://recipe-flow/app.html';
 
-// Will be populated by the build process
+// Will be populated by the build process or at runtime
 let bundledHtml = '';
 
 /**
  * Set the bundled HTML content for the MCP app UI.
- * Called during build or at runtime to provide the UI HTML.
+ * Called at startup to provide the self-contained UI HTML.
  */
 export function setBundledHtml(html: string): void {
   bundledHtml = html;
 }
 
 /**
- * Get the bundled HTML content.
+ * Get OpenAI-specific metadata for tools.
+ * Uses the resource URI for outputTemplate - ChatGPT will fetch the HTML from the resource.
  */
-export function getBundledHtml(): string {
-  return bundledHtml;
+function getOpenAiToolMeta() {
+  return {
+    'openai/outputTemplate': UI_RESOURCE_URI,
+    'openai/toolInvocation/invoking': 'Preparing your recipe flowchart...',
+    'openai/toolInvocation/invoked': 'Recipe flowchart ready!',
+    'openai/widgetAccessible': true,
+  } as const;
 }
+
+/**
+ * Returns placeholder HTML when the bundled app hasn't been built yet.
+ */
+function getPlaceholderHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Flow</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f9fafb;
+      color: #374151;
+    }
+    .message { text-align: center; padding: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="message">
+    <h1>Recipe Flow</h1>
+    <p>MCP app UI not yet built. Run <code>bun run build:mcp</code> to build.</p>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * OpenAI-specific annotations for tools.
+ * These control elicitation behavior in ChatGPT.
+ */
+const OPENAI_TOOL_ANNOTATIONS = {
+  readOnlyHint: true,
+  openWorldHint: false,
+  destructiveHint: false,
+} as const;
 
 // Detailed schema description for Claude to understand the recipe format
 const RECIPE_SCHEMA_DESCRIPTION = `
 A structured recipe object with the following fields:
 
 - title: string - Recipe name
-- servings: string - Serving description (e.g., "4 servings", "Makes 12 cookies")
+- servings: number - Number of servings (e.g., 4, 12)
 - ingredients: string[] - ALL ingredients with quantities and emoji prefixes (e.g., "🥚 2 large eggs", "🧈 100g butter")
 - equipment: string[] - ALL equipment needed with emoji prefixes (e.g., "🍳 Large frying pan", "🔪 Sharp knife")
 - flowGroups: array of step groups, each containing:
@@ -73,7 +126,7 @@ export function createRecipeFlowServer(): McpServer {
   });
 
   // Single tool: Show Recipe
-  // Claude generates the recipe, then calls this to display it
+  // The LLM generates the recipe, then calls this to display it
   registerAppTool(
     server,
     'show-recipe',
@@ -90,7 +143,15 @@ Use this tool AFTER generating a complete recipe in the required JSON format. Th
 
 When the user asks for a recipe, first generate the complete recipe JSON following the schema, then call this tool with it.`,
       inputSchema: ShowRecipeInputSchema,
-      _meta: { ui: { resourceUri: UI_RESOURCE_URI } },
+      // Combined metadata for both Claude and ChatGPT
+      _meta: {
+        // Claude's MCP ext-apps format
+        ui: { resourceUri: UI_RESOURCE_URI },
+        // OpenAI/ChatGPT format
+        ...getOpenAiToolMeta(),
+      },
+      // OpenAI annotations for elicitation control
+      annotations: OPENAI_TOOL_ANNOTATIONS,
     },
     async (args) => {
       const { recipe } = args;
@@ -100,6 +161,9 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
         (sum: number, group: z.infer<typeof FlowGroupSchema>) => sum + group.steps.length,
         0,
       );
+
+      // Get OpenAI metadata at runtime for correct URL
+      const openAiMeta = getOpenAiToolMeta();
 
       return {
         content: [
@@ -112,11 +176,17 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
           mode: 'viewing',
           recipe,
         },
+        // Include OpenAI invocation metadata in response
+        _meta: {
+          'openai/toolInvocation/invoking': openAiMeta['openai/toolInvocation/invoking'],
+          'openai/toolInvocation/invoked': openAiMeta['openai/toolInvocation/invoked'],
+        },
       };
     },
   );
 
   // Register the HTML UI resource
+  // Serves self-contained bundled HTML that works in both Claude and ChatGPT sandboxes
   registerAppResource(
     server,
     'Recipe Flow UI',
@@ -124,6 +194,7 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
     {
       mimeType: RESOURCE_MIME_TYPE,
       description: 'Interactive cooking flowchart viewer with timers and step tracking',
+      _meta: getOpenAiToolMeta(),
     },
     async () => ({
       contents: [
@@ -137,40 +208,4 @@ When the user asks for a recipe, first generate the complete recipe JSON followi
   );
 
   return server;
-}
-
-/**
- * Returns placeholder HTML when the bundled app hasn't been built yet.
- */
-function getPlaceholderHtml(): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recipe Flow</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      background: #f9fafb;
-      color: #374151;
-    }
-    .message {
-      text-align: center;
-      padding: 2rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="message">
-    <h1>Recipe Flow</h1>
-    <p>MCP app UI not yet built. Run <code>bun run build:mcp</code> to build.</p>
-  </div>
-</body>
-</html>`;
 }

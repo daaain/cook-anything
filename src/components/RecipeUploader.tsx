@@ -406,15 +406,15 @@ export function RecipeUploader({
   }
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-amber-500" />
         Create Recipe Flow
         <button
           type="button"
           onClick={handlePasteFromClipboard}
           disabled={isProcessing}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Paste image from clipboard"
         >
           <ClipboardPaste className="w-4 h-4" />
@@ -424,13 +424,18 @@ export function RecipeUploader({
 
       {/* Auth Warning */}
       {hasToken === false && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2">
           <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="text-amber-800 font-medium">Authentication required</p>
-            <p className="text-amber-700">
+            <p className="text-amber-800 dark:text-amber-300 font-medium">
+              Authentication required
+            </p>
+            <p className="text-amber-700 dark:text-amber-400">
               Please{' '}
-              <a href="/settings" className="underline font-medium hover:text-amber-900">
+              <a
+                href="/settings"
+                className="underline font-medium hover:text-amber-900 dark:hover:text-amber-200"
+              >
                 set your OAuth token in Settings
               </a>{' '}
               to use recipe analysis.
@@ -446,8 +451,8 @@ export function RecipeUploader({
             htmlFor="recipe-images"
             className={`block w-full border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
               isProcessing
-                ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                : 'border-amber-300 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-400'
+                ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 cursor-not-allowed'
+                : 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/20 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:border-amber-400 dark:hover:border-amber-600'
             }`}
           >
             <input
@@ -463,10 +468,12 @@ export function RecipeUploader({
             <Upload
               className={`w-10 h-10 mx-auto mb-3 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`}
             />
-            <p className={`font-medium ${isProcessing ? 'text-gray-500' : 'text-gray-700'}`}>
+            <p
+              className={`font-medium ${isProcessing ? 'text-gray-500' : 'text-gray-700 dark:text-gray-200'}`}
+            >
               Upload recipe screenshots or ingredients photos (optional)
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Or only enter text below to create a recipe without images
             </p>
           </label>
@@ -499,8 +506,8 @@ export function RecipeUploader({
               htmlFor="recipe-images-add"
               className={`aspect-square flex flex-col items-center justify-center border-2 border-dashed rounded-lg ${
                 isProcessing
-                  ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                  : 'border-amber-300 bg-amber-50/50 cursor-pointer hover:bg-amber-50'
+                  ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 cursor-not-allowed'
+                  : 'border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/20 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/30'
               }`}
             >
               <input
@@ -515,7 +522,9 @@ export function RecipeUploader({
               <ImagePlus
                 className={`w-6 h-6 ${isProcessing ? 'text-gray-400' : 'text-amber-500'}`}
               />
-              <span className={`text-xs mt-1 ${isProcessing ? 'text-gray-400' : 'text-gray-500'}`}>
+              <span
+                className={`text-xs mt-1 ${isProcessing ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}
+              >
                 Add more
               </span>
             </label>
@@ -526,11 +535,14 @@ export function RecipeUploader({
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Measure System Toggle */}
           <div className="flex-1">
-            <span id="measurements-label" className="block text-sm font-medium text-gray-700 mb-2">
+            <span
+              id="measurements-label"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+            >
               Measurements
             </span>
             <div
-              className="flex rounded-lg border border-gray-200 overflow-hidden"
+              className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"
               role="radiogroup"
               aria-labelledby="measurements-label"
             >
@@ -541,7 +553,7 @@ export function RecipeUploader({
                 className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
                   measureSystem === 'metric'
                     ? 'bg-amber-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                 } disabled:opacity-50`}
               >
                 Metric
@@ -553,7 +565,7 @@ export function RecipeUploader({
                 className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
                   measureSystem === 'american'
                     ? 'bg-amber-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                 } disabled:opacity-50`}
               >
                 US/Imperial
@@ -563,7 +575,10 @@ export function RecipeUploader({
 
           {/* Servings Input */}
           <div className="flex-1">
-            <label htmlFor="servings" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="servings"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+            >
               Servings
             </label>
             <div className="flex items-center gap-2">
@@ -576,7 +591,7 @@ export function RecipeUploader({
                 value={servings}
                 onChange={(e) => handleServingsChange(parseInt(e.target.value, 10) || 1)}
                 disabled={isProcessing}
-                className="w-full py-2 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full py-2 px-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500"
               />
             </div>
           </div>
@@ -594,7 +609,7 @@ export function RecipeUploader({
           />
           <label
             htmlFor="allow-clarifying"
-            className="text-sm text-gray-700 select-none cursor-pointer"
+            className="text-sm text-gray-700 dark:text-gray-200 select-none cursor-pointer"
           >
             Allow clarifying questions for better results
           </label>
@@ -602,7 +617,10 @@ export function RecipeUploader({
 
         {/* Recipe Text / Adjustments Input */}
         <div>
-          <label htmlFor="adjustments" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="adjustments"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2"
+          >
             {images.length > 0 ? 'Recipe Adjustments (optional)' : 'Recipe Text or Instructions'}
           </label>
           <textarea
@@ -615,12 +633,12 @@ export function RecipeUploader({
                 ? "E.g., 'Make it vegetarian', 'Less spicy'..."
                 : "Enter your recipe, ingredients list, or describe what you'd like to cook..."
             }
-            className={`w-full p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 ${
+            className={`w-full p-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-50 dark:disabled:bg-gray-900 disabled:text-gray-500 ${
               images.length > 0 ? 'h-20' : 'h-32'
             }`}
           />
           {images.length === 0 && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Paste a recipe, list ingredients, or describe what you want to make
             </p>
           )}
@@ -628,7 +646,7 @@ export function RecipeUploader({
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
             {error}
           </div>
         )}
@@ -639,7 +657,9 @@ export function RecipeUploader({
           onClick={handleSubmit}
           disabled={!canSubmit}
           className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${
-            canSubmit ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-300 cursor-not-allowed'
+            canSubmit
+              ? 'bg-amber-500 hover:bg-amber-600'
+              : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
           }`}
         >
           {isProcessing ? (

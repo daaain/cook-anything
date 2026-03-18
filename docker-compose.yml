@@ -7,6 +7,7 @@ services:
       - .:/app
       - /app/node_modules  # Exclude node_modules from bind mount
     environment:
+      - PORT=3421
       - NEXT_TELEMETRY_DISABLED=1
     stdin_open: true
     tty: true

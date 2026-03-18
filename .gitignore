@@ -42,7 +42,6 @@ yarn-error.log*
 /playwright-report/
 /playwright/.cache/
 
-# MCP bundled UI (generated)
+# bundled MCP UI (build artefact)
 src/lib/mcp/bundled-ui.ts
-src/lib/mcp/dist/
 

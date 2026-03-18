@@ -198,7 +198,7 @@ export function StepTimer({
 
   return (
     <div
-      className={`rounded-lg p-3 transition-colors ${isComplete ? 'bg-green-100' : 'bg-gray-50'}`}
+      className={`rounded-lg p-3 transition-colors ${isComplete ? 'bg-green-100 dark:bg-green-900/40' : 'bg-gray-50 dark:bg-gray-700/50'}`}
     >
       <div className="flex items-center gap-3">
         {/* Timer Display */}
@@ -207,7 +207,7 @@ export function StepTimer({
             <button
               type="button"
               onClick={() => adjustTime(-1)}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+              className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 disabled:opacity-50"
               disabled={totalSeconds <= 30}
             >
               <Minus className="w-4 h-4" />
@@ -216,7 +216,7 @@ export function StepTimer({
 
           <div
             className={`font-mono text-lg font-semibold ${
-              isComplete ? 'text-green-700' : 'text-gray-800'
+              isComplete ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-100'
             }`}
           >
             {isComplete ? (
@@ -233,7 +233,7 @@ export function StepTimer({
             <button
               type="button"
               onClick={() => adjustTime(1)}
-              className="p-1 text-gray-400 hover:text-gray-600"
+              className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -241,7 +241,7 @@ export function StepTimer({
         </div>
 
         {/* Progress Bar */}
-        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-1000 ${
               isComplete ? 'bg-green-500' : 'bg-amber-500'
@@ -256,7 +256,7 @@ export function StepTimer({
             <button
               type="button"
               onClick={reset}
-              className="p-2 rounded-full bg-green-200 text-green-700 hover:bg-green-300"
+              className="p-2 rounded-full bg-green-200 text-green-700 hover:bg-green-300 dark:bg-green-800 dark:text-green-300 dark:hover:bg-green-700"
               title="Reset"
             >
               <RotateCcw className="w-4 h-4" />
@@ -268,8 +268,8 @@ export function StepTimer({
                 onClick={isRunning ? pause : start}
                 className={`p-2 rounded-full ${
                   isRunning
-                    ? 'bg-amber-200 text-amber-700 hover:bg-amber-300'
-                    : 'bg-amber-500 text-white hover:bg-amber-600'
+                    ? 'bg-amber-200 text-amber-700 hover:bg-amber-300 dark:bg-amber-800 dark:text-amber-300 dark:hover:bg-amber-700'
+                    : 'bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500'
                 }`}
                 title={isRunning ? 'Pause' : 'Start'}
               >
@@ -279,7 +279,7 @@ export function StepTimer({
               <button
                 type="button"
                 onClick={reset}
-                className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"
+                className="p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500"
                 title="Reset"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -289,7 +289,7 @@ export function StepTimer({
         </div>
       </div>
 
-      <div className="text-xs text-gray-500 mt-1">Step {stepNumber} timer</div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Step {stepNumber} timer</div>
     </div>
   );
 }

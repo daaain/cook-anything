@@ -1,9 +1,12 @@
 'use client';
 
+import type { McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { useApp, useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
-import { useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { FlowChart } from '@/components/FlowChart';
 import type { RecipeOutput } from '@/lib/recipe';
+import { detectHostType, useOpenAiGlobal } from '../hooks/host-detection';
+import type { HostType } from '../hooks/types';
 
 interface AppState {
   recipe: RecipeOutput | null;
@@ -11,14 +14,48 @@ interface AppState {
 }
 
 /**
- * Main Recipe Flow app component.
- * Used by both the Vite MCP bundle and the Next.js preview page.
+ * ChatGPT-specific component that uses window.openai for data.
  */
-export function RecipeFlowApp() {
+function ChatGPTRecipeFlow() {
+  // Get tool output from ChatGPT's window.openai
+  const toolOutput = useOpenAiGlobal('toolOutput') as { recipe?: RecipeOutput } | null;
+  const theme = useOpenAiGlobal('theme') as 'light' | 'dark' | null;
+
+  // Apply theme class to body for ChatGPT
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const recipe = toolOutput?.recipe ?? null;
+
+  if (recipe) {
+    return <FlowChart recipe={recipe} />;
+  }
+
+  // Idle state - waiting for a recipe
+  return (
+    <div className="p-6 text-center">
+      <div className="text-lg font-medium text-gray-700 dark:text-gray-200">Recipe Flow</div>
+      <div className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+        Ask ChatGPT to create a recipe to see an interactive cooking flowchart.
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Claude-specific component that uses the MCP ext-apps SDK.
+ */
+function ClaudeRecipeFlow() {
   const [state, setState] = useState<AppState>({
     recipe: null,
     error: null,
   });
+  const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>(undefined);
 
   const {
     app,
@@ -70,17 +107,42 @@ export function RecipeFlowApp() {
           error: err.message || 'An error occurred',
         }));
       };
+
+      // Subscribe to host context changes (theme, fonts, etc.)
+      app.onhostcontextchanged = (params) => {
+        setHostContext((prev) => ({ ...prev, ...params }));
+      };
     },
   });
 
-  // Apply host styles (theme, fonts)
-  useHostStyleVariables(app, app?.getHostContext());
+  // Set initial host context when app connects
+  /* eslint-disable react-hooks/set-state-in-effect -- Syncing initial state from MCP SDK after connection */
+  useEffect(() => {
+    if (app) {
+      setHostContext(app.getHostContext() ?? undefined);
+    }
+  }, [app]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Apply host styles (theme, fonts) reactively
+  useHostStyleVariables(app, hostContext);
+
+  // Apply dark class for Tailwind dark mode support
+  useEffect(() => {
+    if (hostContext?.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [hostContext?.theme]);
 
   if (connectionError) {
     return (
       <div className="p-6 text-center">
-        <div className="text-red-600 font-medium">Connection Error</div>
-        <div className="text-gray-600 text-sm mt-2">{connectionError.message}</div>
+        <div className="text-red-600 dark:text-red-400 font-medium">Connection Error</div>
+        <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+          {connectionError.message}
+        </div>
       </div>
     );
   }
@@ -88,7 +150,7 @@ export function RecipeFlowApp() {
   if (!isConnected) {
     return (
       <div className="p-6 text-center">
-        <div className="text-gray-600">Connecting to host...</div>
+        <div className="text-gray-600 dark:text-gray-400">Connecting to host...</div>
       </div>
     );
   }
@@ -96,8 +158,8 @@ export function RecipeFlowApp() {
   if (state.error) {
     return (
       <div className="p-6 text-center">
-        <div className="text-red-600 font-medium">Error</div>
-        <div className="text-gray-600 text-sm mt-2">{state.error}</div>
+        <div className="text-red-600 dark:text-red-400 font-medium">Error</div>
+        <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">{state.error}</div>
       </div>
     );
   }
@@ -109,10 +171,61 @@ export function RecipeFlowApp() {
   // Idle state - waiting for a recipe
   return (
     <div className="p-6 text-center">
-      <div className="text-lg font-medium text-gray-700">Recipe Flow</div>
-      <div className="text-gray-500 mt-2 text-sm">
+      <div className="text-lg font-medium text-gray-700 dark:text-gray-200">Recipe Flow</div>
+      <div className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
         Ask Claude to create a recipe to see an interactive cooking flowchart.
       </div>
     </div>
   );
+}
+
+// Stable snapshot references for useSyncExternalStore (must return same object
+// reference when value hasn't changed, otherwise React re-renders infinitely).
+const SERVER_SNAPSHOT = { hostType: 'unknown' as HostType, isClient: false };
+let clientSnapshot: { hostType: HostType; isClient: boolean } | null = null;
+
+function getClientSnapshot() {
+  if (!clientSnapshot) {
+    clientSnapshot = { hostType: detectHostType(), isClient: true };
+  }
+  return clientSnapshot;
+}
+
+const noopSubscribe = () => () => {};
+
+/**
+ * Hook to detect host type using useSyncExternalStore for SSR safety.
+ */
+function useHostDetection(): { hostType: HostType; isClient: boolean } {
+  return useSyncExternalStore(noopSubscribe, getClientSnapshot, () => SERVER_SNAPSHOT);
+}
+
+/**
+ * Main Recipe Flow app component.
+ * Automatically detects the host (Claude or ChatGPT) and uses the appropriate
+ * communication method.
+ *
+ * - Claude: Uses @modelcontextprotocol/ext-apps SDK with postMessage
+ * - ChatGPT: Uses window.openai skybridge runtime
+ */
+export function RecipeFlowApp() {
+  const { hostType, isClient } = useHostDetection();
+
+  // During SSR or before hydration, show loading state
+  if (!isClient) {
+    return (
+      <div className="p-6 text-center">
+        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Render the appropriate component based on host type
+  if (hostType === 'chatgpt') {
+    return <ChatGPTRecipeFlow />;
+  }
+
+  // Default to Claude for 'claude' and 'unknown' hosts
+  // This ensures the widget works in development/preview mode
+  return <ClaudeRecipeFlow />;
 }
