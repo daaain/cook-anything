@@ -1,52 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import { DELETE, GET, OPTIONS, POST } from './route';
 
-// Track transports for testing session management
-const mockTransports = new Map<string, { handleRequest: ReturnType<typeof mock> }>();
-
-// Mock the MCP SDK transport
+// Mock the MCP SDK transport — stateless mode (no session IDs)
 mock.module('@/lib/mcp/mcp-sdk', () => ({
   WebStandardStreamableHTTPServerTransport: class MockTransport {
-    private sessionIdGenerator: () => string;
-    private onsessioninitialized?: (id: string) => void;
-    private onsessionclosed?: (id: string) => void;
-
-    constructor(options: {
-      sessionIdGenerator: () => string;
-      onsessioninitialized?: (id: string) => void;
-      onsessionclosed?: (id: string) => void;
-    }) {
-      this.sessionIdGenerator = options.sessionIdGenerator;
-      this.onsessioninitialized = options.onsessioninitialized;
-      this.onsessionclosed = options.onsessionclosed;
-    }
-
     handleRequest = mock(async (request: Request) => {
       const method = request.method;
 
       if (method === 'POST') {
-        // Simulate session initialization
-        const sessionId = this.sessionIdGenerator();
-        this.onsessioninitialized?.(sessionId);
-
-        // Store this mock transport
-        mockTransports.set(sessionId, this);
-
         return new Response(JSON.stringify({ result: 'success' }), {
           status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'mcp-session-id': sessionId,
-          },
+          headers: { 'Content-Type': 'application/json' },
         });
       }
 
       if (method === 'DELETE') {
-        const sessionId = request.headers.get('mcp-session-id');
-        if (sessionId) {
-          this.onsessionclosed?.(sessionId);
-          mockTransports.delete(sessionId);
-        }
         return new Response(null, { status: 204 });
       }
 
@@ -60,17 +28,10 @@ mock.module('@/lib/mcp/server', () => ({
   createRecipeFlowServer: () => ({
     connect: mock(async () => {}),
   }),
+  setBundledHtml: mock(() => {}),
 }));
 
 describe('MCP API Route', () => {
-  beforeEach(() => {
-    mockTransports.clear();
-  });
-
-  afterEach(() => {
-    mockTransports.clear();
-  });
-
   describe('OPTIONS', () => {
     it('returns CORS headers', async () => {
       const response = await OPTIONS();
@@ -142,7 +103,7 @@ describe('MCP API Route', () => {
   });
 
   describe('POST', () => {
-    it('creates new session for initialize request', async () => {
+    it('handles requests in stateless mode', async () => {
       const request = new Request('http://localhost/api/mcp', {
         method: 'POST',
         headers: {
@@ -159,8 +120,6 @@ describe('MCP API Route', () => {
       const response = await POST(request);
 
       expect(response.status).toBe(200);
-      // Session ID should be set in response header
-      expect(response.headers.get('mcp-session-id')).toBeTruthy();
     });
 
     it('returns JSON response', async () => {
@@ -185,31 +144,8 @@ describe('MCP API Route', () => {
 
   describe('DELETE', () => {
     it('returns 204 on session termination', async () => {
-      // First create a session
-      const postRequest = new Request('http://localhost/api/mcp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'initialize',
-          params: {},
-          id: 1,
-        }),
-      });
-
-      const postResponse = await POST(postRequest);
-      const sessionId = postResponse.headers.get('mcp-session-id');
-
-      expect(sessionId).toBeTruthy();
-
-      // Now delete the session
       const deleteRequest = new Request('http://localhost/api/mcp', {
         method: 'DELETE',
-        headers: {
-          'mcp-session-id': sessionId ?? '',
-        },
       });
 
       const deleteResponse = await DELETE(deleteRequest);

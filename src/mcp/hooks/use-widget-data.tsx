@@ -154,8 +154,7 @@ const DEFAULT_WIDGET_DATA: UnifiedWidgetData = {
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: generic context requires any
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const WidgetDataContext = createContext<UnifiedWidgetData<any>>(DEFAULT_WIDGET_DATA);
+const WidgetDataContext = createContext<UnifiedWidgetData<any>>(DEFAULT_WIDGET_DATA); // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /**
  * ChatGPT-specific provider — only mounts ChatGPT hooks.

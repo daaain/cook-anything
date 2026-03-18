@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!e2e/fixtures"]
+    "includes": ["**", "!e2e/fixtures", "!next-env.d.ts", "!!src/lib/mcp/bundled-ui.ts"]
   },
   "formatter": {
     "enabled": true,

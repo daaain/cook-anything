@@ -2,7 +2,7 @@
  * MCP API Route Handler
  *
  * Provides an MCP server endpoint for Claude.ai integration.
- * Handles POST (JSON-RPC messages), GET (SSE stream), and DELETE (session termination).
+ * Uses stateless mode (no session IDs) for Vercel serverless compatibility.
  */
 
 import { WebStandardStreamableHTTPServerTransport } from '@/lib/mcp/mcp-sdk';
@@ -22,75 +22,38 @@ async function initBundledHtml() {
 
 initBundledHtml();
 
-// Store active transports by session ID for session management
-const transports = new Map<string, WebStandardStreamableHTTPServerTransport>();
+// Stateless: single server+transport reused across warm invocations
+let server: ReturnType<typeof createRecipeFlowServer> | null = null;
+let transport: WebStandardStreamableHTTPServerTransport | null = null;
 
-/**
- * Handle MCP requests - supports POST (messages), GET (SSE), and DELETE (session close).
- */
-async function handleMcpRequest(request: Request): Promise<Response> {
-  const sessionId = request.headers.get('mcp-session-id');
-
-  // For existing sessions, reuse the transport
-  if (sessionId) {
-    const existingTransport = transports.get(sessionId);
-    if (existingTransport) {
-      return existingTransport.handleRequest(request);
-    }
-
-    // Session ID provided but not found — client must reinitialize
-    console.warn(`MCP session not found: ${sessionId} (client needs to reinitialize)`);
-    return new Response(
-      JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32001,
-          message: 'Session not found. Please reinitialize.',
-        },
-        id: null,
-      }),
-      {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
+async function getTransport(): Promise<WebStandardStreamableHTTPServerTransport> {
+  if (!server || !transport) {
+    server = createRecipeFlowServer();
+    transport = new WebStandardStreamableHTTPServerTransport({
+      sessionIdGenerator: undefined, // Stateless mode — no sessions
+    });
+    await server.connect(transport);
   }
-
-  // Create new transport for new sessions
-  const server = createRecipeFlowServer();
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-    onsessioninitialized: (id) => {
-      transports.set(id, transport);
-    },
-    onsessionclosed: (id) => {
-      transports.delete(id);
-    },
-  });
-
-  // Connect the server to the transport
-  await server.connect(transport);
-
-  // Handle the request
-  return transport.handleRequest(request);
+  return transport;
 }
 
 /**
  * POST handler for MCP JSON-RPC messages.
  */
 export async function POST(request: Request): Promise<Response> {
-  return handleMcpRequest(request);
+  const t = await getTransport();
+  return t.handleRequest(request);
 }
 
 /**
- * GET handler for MCP SSE streams.
+ * GET handler for MCP SSE streams or server info.
  */
 export async function GET(request: Request): Promise<Response> {
-  // Check if this is a session reconnection
   const sessionId = request.headers.get('mcp-session-id');
 
-  if (sessionId && transports.has(sessionId)) {
-    return handleMcpRequest(request);
+  if (sessionId) {
+    const t = await getTransport();
+    return t.handleRequest(request);
   }
 
   // For non-MCP GET requests, return server info
@@ -112,7 +75,8 @@ export async function GET(request: Request): Promise<Response> {
  * DELETE handler for MCP session termination.
  */
 export async function DELETE(request: Request): Promise<Response> {
-  return handleMcpRequest(request);
+  const t = await getTransport();
+  return t.handleRequest(request);
 }
 
 /**
