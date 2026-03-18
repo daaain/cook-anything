@@ -1,67 +1,16 @@
 'use client';
 
+import type { McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { useApp, useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { FlowChart } from '@/components/FlowChart';
 import type { RecipeOutput } from '@/lib/recipe';
-import { type HostType, SET_GLOBALS_EVENT_TYPE } from '../hooks/types';
+import { detectHostType, useOpenAiGlobal } from '../hooks/host-detection';
+import type { HostType } from '../hooks/types';
 
 interface AppState {
   recipe: RecipeOutput | null;
   error: string | null;
-}
-
-/**
- * Detects which host environment we're running in.
- * ChatGPT injects window.openai, Claude doesn't.
- */
-function detectHostType(): HostType {
-  if (typeof window === 'undefined') {
-    return 'unknown';
-  }
-
-  // ChatGPT injects window.openai before the widget loads
-  if (window.openai !== undefined) {
-    return 'chatgpt';
-  }
-
-  // No window.openai means we're in Claude or standalone
-  return 'claude';
-}
-
-/**
- * Hook to access OpenAI globals reactively (for ChatGPT).
- * Returns unknown to avoid complex generic type inference issues.
- */
-function useOpenAiGlobal(key: string): unknown {
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window === 'undefined') {
-        return () => {};
-      }
-
-      const handleSetGlobal = (event: CustomEvent<{ globals?: Record<string, unknown> }>) => {
-        const globals = event.detail?.globals;
-        if (!globals || globals[key] === undefined) {
-          return;
-        }
-        onChange();
-      };
-
-      window.addEventListener(SET_GLOBALS_EVENT_TYPE, handleSetGlobal as EventListener, {
-        passive: true,
-      });
-
-      return () => {
-        window.removeEventListener(SET_GLOBALS_EVENT_TYPE, handleSetGlobal as EventListener);
-      };
-    },
-    () => {
-      const openai = window.openai as Record<string, unknown> | undefined;
-      return openai?.[key] ?? null;
-    },
-    () => null,
-  );
 }
 
 /**
@@ -106,6 +55,7 @@ function ClaudeRecipeFlow() {
     recipe: null,
     error: null,
   });
+  const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>(undefined);
 
   const {
     app,
@@ -157,23 +107,34 @@ function ClaudeRecipeFlow() {
           error: err.message || 'An error occurred',
         }));
       };
+
+      // Subscribe to host context changes (theme, fonts, etc.)
+      app.onhostcontextchanged = (params) => {
+        setHostContext((prev) => ({ ...prev, ...params }));
+      };
     },
   });
 
-  // Apply host styles (theme, fonts)
-  useHostStyleVariables(app, app?.getHostContext());
-
-  // Also apply dark class for Tailwind dark mode support
+  // Set initial host context when app connects
+  /* eslint-disable react-hooks/set-state-in-effect -- Syncing initial state from MCP SDK after connection */
   useEffect(() => {
     if (app) {
-      const context = app.getHostContext();
-      if (context?.theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      setHostContext(app.getHostContext() ?? undefined);
     }
   }, [app]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Apply host styles (theme, fonts) reactively
+  useHostStyleVariables(app, hostContext);
+
+  // Apply dark class for Tailwind dark mode support
+  useEffect(() => {
+    if (hostContext?.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [hostContext?.theme]);
 
   if (connectionError) {
     return (

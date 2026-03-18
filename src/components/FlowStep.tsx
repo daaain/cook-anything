@@ -101,7 +101,7 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
                 {step.ingredients.map((ingredient) => (
                   <span
                     key={ingredient}
-                    className="inline-block px-2 py-1 bg-white/70 dark:bg-gray-800/70 rounded-full text-center text-s text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+                    className="inline-block px-2 py-1 bg-white/70 dark:bg-gray-800/70 rounded-full text-center text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
                   >
                     {ingredient}
                   </span>
@@ -115,7 +115,7 @@ export function FlowStep({ step, showConnector = true, isMuted = false }: FlowSt
                 {step.equipment.map((item) => (
                   <span
                     key={item}
-                    className="inline-block px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-center text-s text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                    className="inline-block px-2 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-center text-sm text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                   >
                     {item}
                   </span>

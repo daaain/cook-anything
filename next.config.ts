@@ -19,11 +19,6 @@ const nextConfig: NextConfig = {
             value:
               "frame-ancestors 'self' https://chatgpt.com https://*.chatgpt.com https://claude.ai https://*.claude.ai",
           },
-          {
-            // Remove X-Frame-Options to allow embedding (CSP frame-ancestors takes precedence)
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL',
-          },
         ],
       },
     ];

@@ -90,10 +90,10 @@ export function ClarifyingQuestions({
   });
 
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
           <HelpCircle className="w-5 h-5 text-amber-500" />
           Quick Questions
         </h2>
@@ -101,7 +101,7 @@ export function ClarifyingQuestions({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
           title="Cancel"
         >
           <X className="w-5 h-5" />
@@ -110,7 +110,7 @@ export function ClarifyingQuestions({
 
       {/* Context message */}
       {context && (
-        <p className="text-sm text-gray-600 mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
           {context}
         </p>
       )}
@@ -136,7 +136,7 @@ export function ClarifyingQuestions({
           type="button"
           onClick={onSkip}
           disabled={isSubmitting}
-          className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2.5 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <SkipForward className="w-4 h-4" />
           Skip
@@ -148,7 +148,7 @@ export function ClarifyingQuestions({
           className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 ${
             allAnswered && !isSubmitting
               ? 'bg-amber-500 hover:bg-amber-600'
-              : 'bg-gray-300 cursor-not-allowed'
+              : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
           }`}
         >
           {isSubmitting ? (
@@ -184,7 +184,9 @@ function QuestionItem({
 }: QuestionItemProps) {
   return (
     <fieldset>
-      <legend className="block text-sm font-medium text-gray-700 mb-2">{question.question}</legend>
+      <legend className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+        {question.question}
+      </legend>
       <div className="space-y-2">
         {question.options.map((option) => {
           const isSelected = !answer?.isOther && answer?.selectedOption === option;
@@ -193,8 +195,8 @@ function QuestionItem({
               key={option}
               className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
                 isSelected
-                  ? 'border-amber-500 bg-amber-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <input
@@ -206,7 +208,7 @@ function QuestionItem({
                 disabled={disabled}
                 className="accent-amber-500"
               />
-              <span className="text-gray-800">{option}</span>
+              <span className="text-gray-800 dark:text-gray-100">{option}</span>
             </label>
           );
         })}
@@ -215,8 +217,8 @@ function QuestionItem({
         <label
           className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
             answer?.isOther
-              ? 'border-amber-500 bg-amber-50'
-              : 'border-gray-200 hover:border-gray-300'
+              ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <input
@@ -229,7 +231,7 @@ function QuestionItem({
             className="mt-0.5 accent-amber-500"
           />
           <div className="flex-1">
-            <span className="text-gray-800">Other</span>
+            <span className="text-gray-800 dark:text-gray-100">Other</span>
             {answer?.isOther && (
               <input
                 type="text"
@@ -237,7 +239,7 @@ function QuestionItem({
                 onChange={(e) => onCustomTextChange(e.target.value)}
                 placeholder="Enter your preference..."
                 disabled={disabled}
-                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50"
+                className="mt-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-gray-50 dark:disabled:bg-gray-900"
               />
             )}
           </div>

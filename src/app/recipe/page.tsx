@@ -98,9 +98,9 @@ function RecipePageContent() {
   if (!isLoaded) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 animate-pulse">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
         </div>
       </div>
     );
@@ -109,14 +109,16 @@ function RecipePageContent() {
   if (!recipe) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center">
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Recipe not found</h2>
-          <p className="text-gray-600 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
+            Recipe not found
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             The recipe you&apos;re looking for doesn&apos;t exist.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-amber-600 font-medium hover:text-amber-700"
+            className="inline-flex items-center gap-2 text-amber-600 dark:text-amber-400 font-medium hover:text-amber-700 dark:hover:text-amber-300"
           >
             <ArrowLeft className="w-4 h-4" />
             Go back home
@@ -132,7 +134,7 @@ function RecipePageContent() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/library"
-          className="flex items-center gap-2 text-amber-700 hover:text-amber-800 font-medium"
+          className="flex items-center gap-2 text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-medium"
         >
           <ArrowLeft className="w-4 h-4" />
           Library
@@ -146,8 +148,8 @@ function RecipePageContent() {
             onClick={() => setIsEditing(!isEditing)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               isEditing
-                ? 'bg-gray-200 text-gray-700'
-                : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                ? 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-900/70'
             }`}
           >
             {isEditing ? (
@@ -166,7 +168,7 @@ function RecipePageContent() {
           <button
             type="button"
             onClick={handleDelete}
-            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-sm font-medium"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -175,9 +177,9 @@ function RecipePageContent() {
 
       {/* Edit Panel */}
       {isEditing && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <h3 className="font-medium text-amber-800 mb-3">Edit Recipe</h3>
-          <p className="text-sm text-amber-700 mb-4">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <h3 className="font-medium text-amber-800 dark:text-amber-300 mb-3">Edit Recipe</h3>
+          <p className="text-sm text-amber-700 dark:text-amber-400 mb-4">
             Add more images or describe changes you&apos;d like to make. Your changes will be
             applied to the current recipe.
           </p>
@@ -201,9 +203,9 @@ export default function RecipePage() {
     <Suspense
       fallback={
         <div className="max-w-2xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 animate-pulse">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
           </div>
         </div>
       }

@@ -7,8 +7,8 @@
  */
 
 import { resolve } from 'node:path';
-import postcss from 'postcss';
 import tailwindcss from '@tailwindcss/postcss';
+import postcss from 'postcss';
 
 const projectRoot = resolve(import.meta.dirname, '..');
 const entryPoint = resolve(projectRoot, 'src/mcp/mcp-app.tsx');

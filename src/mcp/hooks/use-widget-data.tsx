@@ -6,70 +6,31 @@
  *
  * Usage:
  * ```tsx
+ * // Wrap your app in the provider:
+ * <WidgetDataProvider>
+ *   <MyWidget />
+ * </WidgetDataProvider>
+ *
+ * // Then consume in any child component:
  * const { data, isConnected, hostType, theme, error } = useWidgetData<MyDataType>();
  * ```
  */
 
 'use client';
 
+import type { McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { useApp, useHostStyleVariables } from '@modelcontextprotocol/ext-apps/react';
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { detectHostType, useOpenAiGlobal } from './host-detection';
 import type { DisplayMode, HostType, Theme, UnifiedWidgetData } from './types';
-import { SET_GLOBALS_EVENT_TYPE } from './types';
-
-/**
- * Detects which host environment we're running in.
- */
-function detectHostType(): HostType {
-  if (typeof window === 'undefined') {
-    return 'unknown';
-  }
-
-  // ChatGPT injects window.openai
-  if (window.openai?.toolOutput !== undefined || window.openai?.toolInput !== undefined) {
-    return 'chatgpt';
-  }
-
-  // Claude's MCP ext-apps will connect via postMessage
-  // We detect this by checking if we're in an iframe with certain characteristics
-  // or by the presence of the MCP app SDK
-  return 'claude';
-}
-
-/**
- * Hook to access OpenAI globals reactively.
- * Returns unknown to avoid complex generic type inference issues.
- */
-function useOpenAiGlobal(key: string): unknown {
-  return useSyncExternalStore(
-    (onChange) => {
-      if (typeof window === 'undefined') {
-        return () => {};
-      }
-
-      const handleSetGlobal = (event: CustomEvent<{ globals?: Record<string, unknown> }>) => {
-        const globals = event.detail?.globals;
-        if (!globals || globals[key] === undefined) {
-          return;
-        }
-        onChange();
-      };
-
-      window.addEventListener(SET_GLOBALS_EVENT_TYPE, handleSetGlobal as EventListener, {
-        passive: true,
-      });
-
-      return () => {
-        window.removeEventListener(SET_GLOBALS_EVENT_TYPE, handleSetGlobal as EventListener);
-      };
-    },
-    () => {
-      const openai = window.openai as Record<string, unknown> | undefined;
-      return openai?.[key] ?? null;
-    },
-    () => null, // Server-side snapshot
-  );
-}
 
 /**
  * ChatGPT-specific hook for widget data.
@@ -98,6 +59,7 @@ function useChatGPTWidgetData<T>(): UnifiedWidgetData<T> {
  */
 function useClaudeWidgetData<T>(): UnifiedWidgetData<T> {
   const [data, setData] = useState<T | null>(null);
+  const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>(undefined);
 
   const handleAppCreated = useCallback(
     (app: Parameters<NonNullable<Parameters<typeof useApp>[0]['onAppCreated']>>[0]) => {
@@ -124,6 +86,11 @@ function useClaudeWidgetData<T>(): UnifiedWidgetData<T> {
       app.onerror = (err) => {
         console.error('MCP App error:', err);
       };
+
+      // Subscribe to host context changes (theme, fonts, etc.)
+      app.onhostcontextchanged = (params) => {
+        setHostContext((prev) => ({ ...prev, ...params }));
+      };
     },
     [],
   );
@@ -138,17 +105,20 @@ function useClaudeWidgetData<T>(): UnifiedWidgetData<T> {
     onAppCreated: handleAppCreated,
   });
 
-  // Apply host styles (theme, fonts) for Claude
-  useHostStyleVariables(app, app?.getHostContext());
-
-  // Derive theme from host context (Claude applies theme via CSS variables)
-  const theme = useMemo(() => {
+  // Set initial host context when app connects
+  /* eslint-disable react-hooks/set-state-in-effect -- Syncing initial state from MCP SDK after connection */
+  useEffect(() => {
     if (app) {
-      const context = app.getHostContext();
-      return (context?.theme as Theme) ?? 'light';
+      setHostContext(app.getHostContext() ?? undefined);
     }
-    return 'light' as Theme;
   }, [app]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Apply host styles (theme, fonts) reactively
+  useHostStyleVariables(app, hostContext);
+
+  // Derive theme reactively from host context state
+  const theme = (hostContext?.theme as Theme) ?? 'light';
 
   return {
     data,
@@ -174,41 +144,75 @@ function useHostTypeInternal(): HostType {
   );
 }
 
+const DEFAULT_WIDGET_DATA: UnifiedWidgetData = {
+  data: null,
+  isConnected: false,
+  hostType: 'unknown',
+  theme: 'light',
+  displayMode: 'inline',
+  error: null,
+};
+
+// biome-ignore lint/suspicious/noExplicitAny: generic context requires any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const WidgetDataContext = createContext<UnifiedWidgetData<any>>(DEFAULT_WIDGET_DATA);
+
+/**
+ * ChatGPT-specific provider — only mounts ChatGPT hooks.
+ */
+function ChatGPTWidgetDataProvider({ children }: { children: ReactNode }) {
+  const data = useChatGPTWidgetData();
+  return <WidgetDataContext.Provider value={data}>{children}</WidgetDataContext.Provider>;
+}
+
+/**
+ * Claude-specific provider — only mounts Claude/MCP hooks.
+ */
+function ClaudeWidgetDataProvider({ children }: { children: ReactNode }) {
+  const data = useClaudeWidgetData();
+  return <WidgetDataContext.Provider value={data}>{children}</WidgetDataContext.Provider>;
+}
+
+/**
+ * Unknown host provider — returns disconnected default state.
+ */
+function UnknownWidgetDataProvider({ children }: { children: ReactNode }) {
+  return (
+    <WidgetDataContext.Provider value={DEFAULT_WIDGET_DATA}>{children}</WidgetDataContext.Provider>
+  );
+}
+
+/**
+ * Provider that detects the host environment and mounts only the relevant
+ * host-specific hook tree. This ensures useClaudeWidgetData (and its useApp
+ * call) never runs in ChatGPT, and vice versa.
+ *
+ * Wrap your app in this provider, then use useWidgetData() in child components.
+ */
+export function WidgetDataProvider({ children }: { children: ReactNode }) {
+  const hostType = useHostTypeInternal();
+
+  if (hostType === 'chatgpt') {
+    return <ChatGPTWidgetDataProvider>{children}</ChatGPTWidgetDataProvider>;
+  }
+  if (hostType === 'claude') {
+    return <ClaudeWidgetDataProvider>{children}</ClaudeWidgetDataProvider>;
+  }
+  return <UnknownWidgetDataProvider>{children}</UnknownWidgetDataProvider>;
+}
+
 /**
  * Unified hook for accessing widget data from either Claude or ChatGPT.
  *
- * Automatically detects the host environment and uses the appropriate API.
+ * Must be used within a WidgetDataProvider. The provider detects the host
+ * environment and only mounts the appropriate host-specific hooks, avoiding
+ * unnecessary MCP connections in ChatGPT or OpenAI global access in Claude.
  *
  * @template T - The type of the structured data from the tool output
  * @returns UnifiedWidgetData<T> - The widget data and connection state
  */
 export function useWidgetData<T = Record<string, unknown>>(): UnifiedWidgetData<T> {
-  const hostType = useHostTypeInternal();
-
-  // For ChatGPT, use window.openai
-  const chatGPTData = useChatGPTWidgetData<T>();
-
-  // For Claude, use the MCP app SDK
-  const claudeData = useClaudeWidgetData<T>();
-
-  // Return data based on detected host type
-  return useMemo(() => {
-    if (hostType === 'chatgpt') {
-      return chatGPTData;
-    }
-    if (hostType === 'claude') {
-      return claudeData;
-    }
-    // Unknown host - return disconnected state
-    return {
-      data: null,
-      isConnected: false,
-      hostType: 'unknown',
-      theme: 'light' as Theme,
-      displayMode: 'inline' as DisplayMode,
-      error: null,
-    };
-  }, [hostType, chatGPTData, claudeData]);
+  return useContext(WidgetDataContext) as UnifiedWidgetData<T>;
 }
 
 /**

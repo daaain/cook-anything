@@ -23,10 +23,10 @@ export function ImportPreviewModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Import Preview</h2>
-          <p className="text-sm text-gray-500 mt-1">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Import Preview</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {totalRecipes} recipe{totalRecipes !== 1 ? 's' : ''} found in selected files
           </p>
         </div>
@@ -34,7 +34,7 @@ export function ImportPreviewModal({
         <div className="p-6 space-y-4 overflow-y-auto max-h-[50vh]">
           {preview.added.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-green-700">
+              <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                 <Plus className="w-4 h-4" />
                 <span className="font-medium">
                   {preview.added.length} new recipe{preview.added.length !== 1 ? 's' : ''}
@@ -42,7 +42,10 @@ export function ImportPreviewModal({
               </div>
               <ul className="ml-6 space-y-1">
                 {preview.added.map((recipe) => (
-                  <li key={recipe.slug || recipe.title} className="text-sm text-gray-600">
+                  <li
+                    key={recipe.slug || recipe.title}
+                    className="text-sm text-gray-600 dark:text-gray-400"
+                  >
                     {recipe.title}
                   </li>
                 ))}
@@ -52,13 +55,16 @@ export function ImportPreviewModal({
 
           {preview.updated.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-blue-700">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                 <RefreshCw className="w-4 h-4" />
                 <span className="font-medium">{preview.updated.length} will be updated</span>
               </div>
               <ul className="ml-6 space-y-1">
                 {preview.updated.map((recipe) => (
-                  <li key={recipe.slug || recipe.title} className="text-sm text-gray-600">
+                  <li
+                    key={recipe.slug || recipe.title}
+                    className="text-sm text-gray-600 dark:text-gray-400"
+                  >
                     {recipe.title}
                     {recipe.savedAt && (
                       <span className="text-gray-400 ml-1">
@@ -89,18 +95,18 @@ export function ImportPreviewModal({
           )}
 
           {totalRecipes === 0 && (
-            <div className="flex items-center gap-2 text-amber-600">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <AlertCircle className="w-4 h-4" />
               <span>No valid recipes found in the selected files.</span>
             </div>
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
+        <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex gap-3 justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             Cancel
           </button>

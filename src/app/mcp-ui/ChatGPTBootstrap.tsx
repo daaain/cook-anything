@@ -107,6 +107,16 @@ export function ChatGPTBootstrap({ baseUrl }: ChatGPTBootstrapProps) {
           newUrl.search = url.search;
           newUrl.hash = url.hash;
 
+          // When input is a Request, use it as the base so method/headers/body/
+          // credentials/signal etc. are preserved, then layer on init overrides.
+          if (input instanceof Request) {
+            const rewrittenReq = new Request(newUrl.toString(), input);
+            return originalFetch.call(window, rewrittenReq, {
+              ...init,
+              mode: 'cors',
+            });
+          }
+
           return originalFetch.call(window, newUrl.toString(), {
             ...init,
             mode: 'cors',

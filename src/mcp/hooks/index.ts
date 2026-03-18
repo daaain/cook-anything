@@ -5,6 +5,7 @@
  * providing a consistent API for widget development.
  */
 
+export { detectHostType, useOpenAiGlobal } from './host-detection';
 export type {
   CallToolResponse,
   DeviceType,
@@ -17,4 +18,4 @@ export type {
   UnifiedWidgetData,
   UserAgent,
 } from './types';
-export { useHostType, useTheme, useWidgetData } from './use-widget-data';
+export { useHostType, useTheme, useWidgetData, WidgetDataProvider } from './use-widget-data';
